@@ -52,7 +52,7 @@ def assessBugType(bugFolder: str, codeSample, astSample, style: threadingStyle):
         if bugFile == "__init__.py" or bugFile == "probe.py":
             continue
         prober = importlib.import_module(
-            bugFolder + "." + bugFile[:-3], "../" + bugFolder + "/" + bugFile
+            bugFolder + "." + bugFile[:-3], f"{bugFolder}.{bugFile}"
         )
         bugDetector = getattr(prober, "detect" + bugFile[:-3])
         status, bugTypeMessage = bugDetector(codeSample, astSample)

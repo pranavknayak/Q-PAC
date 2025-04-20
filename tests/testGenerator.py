@@ -27,7 +27,7 @@ def runTests(
         bugTestFileName = os.path.basename(bugTestFile)
         bugTestFileProber = importlib.import_module(
             bugDatasetDirectoryName + "." + bugTestFileName[:-3],
-            bugDatasetDirectoryPath + "/" + bugTestFileName,
+           f"{bugDatasetDirectoryPath}.{bugTestFileName}",
         )
         bugTypeMessage = bI.classifyBugs(
             bugTestFileProber.buggyCode,

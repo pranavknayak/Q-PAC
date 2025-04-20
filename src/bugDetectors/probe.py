@@ -43,7 +43,7 @@ def assessBugClass(bugFolder: str, codeSample, style: threadingStyle):
         bugTypeMessages[bugPackage] = []
         prober = importlib.import_module(
             bugFolder + "." + bugPackage + "." + bugPruningFileName,
-            "../" + bugPackage + "/" + bugPruningFileName + ".py",
+            f"{bugDirectory}.{bugPruningFileName}",
         )
         """ Finds an appropriate bug-fix class."""
         if prober.assessBugClass(codeSample) == True:
@@ -56,7 +56,7 @@ def assessBugClass(bugFolder: str, codeSample, style: threadingStyle):
         if prune == True:
             prober = importlib.import_module(
                 bugFolder + "." + _bugPackage_ + "." + bugPruningFileName,
-                "../" + _bugPackage_ + "/" + bugPruningFileName + ".py",
+                f"{bugDirectory}.{bugPruningFileName}",
             )
             status, bugTypeMessage = prober.assessBugType(
                 bugFolder + "." + _bugPackage_, codeSample, astSample, style
