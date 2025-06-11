@@ -141,15 +141,14 @@ class IncorrectUnitary():
             return False
 
     def _detectIncorrectUnitary(self, codeDiff, astSample):
-        bugTypeMessage = None
-        status = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
-        if (status is not None) or ((not self._snippet_raises_amplitude_error(codeDiff[1])) and self._snippet_raises_amplitude_error(codeDiff[0])) :
+        bugTypeMessage = "Non-unitary matrix(ces) (which is/are supposed to be unitary) found."
+        status = False
+        if (not self._snippet_raises_amplitude_error(codeDiff[1])) and self._snippet_raises_amplitude_error(codeDiff[0]):
             status = True
-            bugTypeMessage = "Non-unitary matrix(ces) (which is/are supposed to be unitary) found."
-        else:
-            status = False
-            
-        
+        if status is False:
+            status = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
+            if status is False:
+                bugTypeMessage = None
         return status, bugTypeMessage
     
     def assessBugType(self, codeSample, astSample):
