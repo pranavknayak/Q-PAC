@@ -1,4 +1,6 @@
 import numpy as np
+import ast
+import builtins
 
 class IncorrectUnitary():
 
@@ -32,15 +34,33 @@ class IncorrectUnitary():
         arrays = {}
         variables = {}
         # Controlled execution environment
-        safeGlobals = {'__builtins__': None, 'np': np}
-        try:
-            exec(code, safeGlobals, variables)
-            # Recursively extract arrays from variables
-            for varName, value in variables.items():
-                foundArrays = self._extractArraysFromObject(value, varName)
-                arrays.update(foundArrays)
-        except Exception as e:
-            print(f"Error executing code: {e}")
+        #safeGlobals = {'__builtins__': None, 'np': np}
+        safeGlobals = {
+            '__builtins__': {
+                '__import__': builtins.__import__,
+                'abs':     builtins.abs,      # if you need abs()
+                # ...any other built-ins you explicitly want to allow
+            },
+            'np': np
+        }
+
+        # try:
+            
+        # except Exception as e:
+        #     print(f"Error executing code: {e}")
+
+        print(code, safeGlobals, variables, sep="*********\n")
+        tree = ast.parse(code, mode='exec')        
+        compiled = compile(tree, filename="<sandbox>", mode="exec")
+        status = exec(code, safeGlobals, variables)
+        print("status:", status)
+        print("variables:", variables)
+        print("safeGlobals:", safeGlobals)
+        # Recursively extract arrays from variables
+        for varName, value in variables.items():
+            foundArrays = self._extractArraysFromObject(value, varName)
+            arrays.update(foundArrays)
+
         return arrays
 
     def _extractArraysFromObject(self, obj, name):
