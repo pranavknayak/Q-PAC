@@ -114,13 +114,42 @@ class IncorrectUnitary():
                                 nonUnitaryArrays.append(varName)
         return nonUnitaryArrays
 
+def snippet_raises_amplitude_error(code: str) -> bool:
+    """
+    Execute the given code snippet and return True if it raises exactly
+    the QiskitError:
+
+        "Sum of amplitudes-squared is not 1, but {norm}."
+
+    and False for any other outcome (successful run or different error).
+    """
+    # Prepare isolated namespaces
+    globals_dict = {}
+    locals_dict = {}
+
+    try:
+        exec(code, globals_dict, locals_dict)
+        return False
+    except QiskitError as e:
+        # Check that the message matches the amplitude‐norm error
+        msg = str(e)
+        if msg.startswith("Sum of amplitudes-squared is not 1, but"):
+            return True
+        return False
+    except Exception:
+        # Any other exception (or successful execution) → False
+        return False
+
     def _detectIncorrectUnitary(self, codeDiff, astSample):
+        bugTypeMessage = None
         status = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
-        if status is not None:
+        if (status is not None) or ((not snippet_raises_amplitude_error(codeDiff[1])) and snippet_raises_amplitude_error(codeDiff[0])) :
             status = True
+            bugTypeMessage = "Non-unitary matrix(ces) (which is/are supposed to be unitary) found."
         else:
             status = False
-        bugTypeMessage = "Non-unitary matrix(ces) (which is/are supposed to be unitary) found."
+            
+        
         return status, bugTypeMessage
     
     def assessBugType(self, codeSample, astSample):
