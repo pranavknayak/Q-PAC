@@ -1,74 +1,102 @@
 import os
 import traceback
+import argparse
 from BugInvestigator import BugInvestigator
 from CodeProcessor import CodeProcessor
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 
-if __name__ == "__main__":
+def find_leaf_dirs_with_bug_fix(base_dir):
+    """
+    Yield leaf directories (no subdirectories) containing at least one 'bug*.py' and one 'fix*.py'.
+    """
+    for dirpath, dirnames, filenames in os.walk(base_dir):
+        if not dirnames:
+            bug_files = [f for f in filenames if 'bug' in f.lower() and f.endswith('.py')]
+            fix_files = [f for f in filenames if 'fix' in f.lower() and f.endswith('.py')]
+            if bug_files and fix_files:
+                yield dirpath, bug_files, fix_files
+
+
+def infer_label(bugErrorMessage):
+    """
+    Map detected errors to one of the three labels:
+    - Unitary errors -> 'Operator-related'
+    - Measurement errors -> 'Measurement-related'
+    - Initialization errors -> 'Qubit/Initialization-related'
+    Otherwise -> 'not a bug'
+    """
+    if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
+        return 'Operator-related'
+    if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
+        return 'Measurement-related'
+    if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
+        return 'Qubit/Initialization-related'
+    return 'not a bug'
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Process test case directories for bug/fix detection and evaluate metrics.")
+    parser.add_argument(
+        "--test-base-dir", 
+        type=str,
+        required=True,
+        help="Path to the base directory containing test case subdirectories."
+    )
+    args = parser.parse_args()
+    test_base_dir = args.test_base_dir
+
     # Initialize BugInvestigator
     bug_investigator = BugInvestigator("BugDetectors/config.json")
     bug_investigator.build_class_hierarchy()
 
-    # Initialize the bug vector
-    bug_vector = [0, 0, 0, 0, 0, 0, 0]
+    # Prepare lists for true and predicted labels
+    y_true = []
+    y_pred = []
 
-    # Path to the directory containing test folders
-    testcases_dir = "../tests"
+    # Iterate through all leaf dirs with both bug and fix files
+    for dirpath, bug_files, fix_files in find_leaf_dirs_with_bug_fix(test_base_dir):
+        # read ground-truth label
+        label_file = os.path.join(dirpath, 'label.txt')
+        if not os.path.isfile(label_file):
+            print(f"Skipping {dirpath}: no label.txt")
+            continue
+        with open(label_file, 'r') as lf:
+            true_label = lf.read().strip()
 
-    # Iterate through test folders
-    for folder_name in os.listdir(testcases_dir):
-        folder_path = os.path.join(testcases_dir, folder_name)
-        if os.path.isdir(folder_path) and folder_name.startswith("test_"):
-            # Extract test number
-            test_number = folder_name.split("_")[1]
+        buggy_path = os.path.join(dirpath, bug_files[0])
+        fixed_path = os.path.join(dirpath, fix_files[0])
 
-            # Define buggy and fixed file paths
-            buggy_file = os.path.join(folder_path, f"{test_number}_buggy.py")
-            fixed_file = os.path.join(folder_path, f"{test_number}_fixed.py")
+        try:
+            with open(buggy_path, 'r') as fb, open(fixed_path, 'r') as ff:
+                buggy_code = fb.read()
+                fixed_code = ff.read()
 
-            # Check if both files exist
-            if os.path.isfile(buggy_file) and os.path.isfile(fixed_file):
-                try:
-                    # Read buggy and fixed code
-                    buggy_code = open(buggy_file, "r").read()
-                    fixed_code = open(fixed_file, "r").read()
+            test = CodeProcessor(buggy_code, fixed_code)
+            bugErrorMessage = bug_investigator.detect_pattern(test)
+            pred_label = infer_label(bugErrorMessage)
 
-                    # Process the code
-                    test = CodeProcessor(buggy_code, fixed_code)
+            print(f"Dir: {dirpath}")
+            print(f"  True Label: {true_label}")
+            print(f"  Pred Label: {pred_label}")
 
-                    # Detect patterns
-                    bugErrorMessage = bug_investigator.detect_pattern(test)
-                    print(f"Results for {folder_name}: {bugErrorMessage}")
+            y_true.append(true_label)
+            y_pred.append(pred_label)
 
-                    # Update bug vector
-                    if bugErrorMessage['Unitary'] != 'None':
-                        if "Incorrect usage of built-in gate(s) and Incorrect usage of opaque gate(s)." in bugErrorMessage['Unitary']:
-                            bug_vector[4] += 1
-                            bug_vector[5] += 1
-                        elif "Incorrect usage of built-in gate(s)." in bugErrorMessage['Unitary']:
-                            bug_vector[4] += 1
-                        elif "Incorrect usage of opaque gate(s)." in bugErrorMessage['Unitary']:
-                            bug_vector[5] += 1
+        except Exception:
+            print(f"ERROR AT {dirpath}")
+            traceback.print_exc()
 
-                        if "Unclosed Hadamard gate detected." in bugErrorMessage['IncorrectHadamard']:
-                            bug_vector[6] += 1
+    # Compute and print metrics
+    if y_true:
+        acc = accuracy_score(y_true, y_pred)
+        prec = precision_score(y_true, y_pred, average='macro', zero_division=0)
+        rec = recall_score(y_true, y_pred, average='macro', zero_division=0)
+        print("\nEvaluation Metrics:")
+        print(f"  Accuracy: {acc:.4f}")
+        print(f"  Precision: {prec:.4f}")
+        print(f"  Recall: {rec:.4f}")
+    else:
+        print("No labeled testcases processed.")
 
-                    if bugErrorMessage['Measurement'] != 'None':
-                        if "Measurement(s) performed incorrectly and Excessive measurements performed." in bugErrorMessage['IncorrectMeasurement']:
-                            bug_vector[2] += 1
-                            bug_vector[3] += 1
-                        elif "Measurement(s) performed incorrectly." in bugErrorMessage['IncorrectMeasurement']:
-                            bug_vector[2] += 1
-                        elif "Excessive measurements performed." in bugErrorMessage['IncorrectMeasurement']:
-                            bug_vector[3] += 1
-
-                    if bugErrorMessage['Initialization'] != 'None':
-                        if "Incorrect initialization(s) attempted." in bugErrorMessage['IncorrectInit']:
-                            bug_vector[0] += 1
-                        if "Unequal bits vs. qubits during QuantumCircuit initialization(s)." in bugErrorMessage['IncorrectInit']:
-                            bug_vector[1] += 1
-
-                except BaseException as e:
-                    print(f"ERROR AT {folder_name}")
-                    print(traceback.format_exc())
-
-    print("Final Bug Vector:", bug_vector)
+if __name__ == "__main__":
+    main()
