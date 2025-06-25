@@ -19,6 +19,6 @@ class Initialization():
             status1 = re.search(initializationRegex1, line)
             status2 = re.search(initializationRegex2, line)
             if status1 is not None or status2 is not None:
-                return True
+                return True, 'None'
         # Does it make search through patched lines too?
-        return False
+        return False, 'None'

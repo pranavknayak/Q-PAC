@@ -3,4 +3,4 @@ class RootDetector():
         self.testing = dummy
     
     def assessBugType(self, codeSample, astSample):
-        return True
+        return True, 'None'

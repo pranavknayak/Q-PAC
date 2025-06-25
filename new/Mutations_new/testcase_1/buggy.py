@@ -1,0 +1,8 @@
+# buggy version
+grover_circuit = initialize_s(grover_circuit, [0,1])
+grover_circuit.cz(0,1)  # Oracle
+grover_circuit.measure_all()  # Incorrectly placed measurement before the diffusion operator
+grover_circuit.h([0,1])  # Diffusion operator
+grover_circuit.z([0,1])
+grover_circuit.cz(0,1)
+grover_circuit.h([0,1])

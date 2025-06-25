@@ -15,14 +15,14 @@ class Unitary():
         for line in buggyList:
             status = re.search(unitaryRegex1, line)
             if status is not None:
-                return True
+                return True, 'None'
 
         for line in buggyList:
             status = re.search(unitaryRegex2, line)
             if status is not None:
-                return True
+                return True, 'None'
         for line in buggyList:
             status = re.search(unitaryRegex3, line)
             if status is not None:
-                return True
-        return False
+                return True, 'None'
+        return False, 'None'

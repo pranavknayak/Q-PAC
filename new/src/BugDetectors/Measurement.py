@@ -15,6 +15,6 @@ class Measurement():
         for line in buggyList:
             status = re.search(measurementRegex, line)
             if status is not None:
-                return True
+                return True, 'None'
 
-        return False
+        return False, 'None'

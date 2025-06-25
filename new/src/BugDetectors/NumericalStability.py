@@ -174,11 +174,11 @@ class NumericalStability:
                 buggyLength = buggyAggs[stat][-1][1][0]
                 patchedLength = patchedAggs[stat][-1][1][0]
                 if buggyLength < patchedLength:
-                    return True
+                    return True, 'Numeraical Stability Check Failed'
             else:
                 continue
         
-        return False
+        return False, 'None'
 
 
 # Write code for entry when called by QPAC
