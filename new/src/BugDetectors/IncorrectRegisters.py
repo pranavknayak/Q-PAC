@@ -65,7 +65,8 @@ class IncorrectRegisters():
                     else:
                         count = 0
                 else:
-                    count = int(args[1:-1])
+                    # print(args, args[1:2])
+                    count = int(args[1:2])
                 buggyClassicalRegisters[register] = count
 
             temporaryStatus = re.search(quantumRegex, line)
@@ -81,7 +82,8 @@ class IncorrectRegisters():
                     else:
                         count = 0
                 else:
-                    count = int(args[1:-1])
+                    # count = int(args[1:-1])
+                    count = int(args[1:2])
                 buggyQuantumRegisters[register] = count
 
         for line in patchedList:
