@@ -1,6 +1,7 @@
 import ast
 import re
 import numpy as np
+from collections import defaultdict
 
 class IncorrectHadamard():
     def _extractIters(self, node: ast.For):
@@ -103,57 +104,163 @@ class IncorrectHadamard():
                         else:
                             patchedRegs[id.id] = node.value.args[0].value
 
+        # for line in buggyList:
+        #     qbit_result = re.search(qubitRegex, line)
+        #     full_reg = False
+        #     if qbit_result is None:
+        #         continue
+        #     qubit_id = qbit_result.group()[3:-1]
+        #     print('heyyyyyy\n\n',qubit_id,'\n\nheyyyyyy')
+        #     if qubit_id.isnumeric():
+        #         qubit_id = int(qubit_id)
+        #     else:
+        #         sqb_pattern = r"\[.*\]"
+        #         if re.search(sqb_pattern, qubit_id) is None:
+        #             full_reg = True
+        #         else:
+        #             id1 = qubit_id.find("[")
+        #             id2 = qubit_id.rfind("]")
+        #             qubit_id = int(qubit_id[id1 + 1 : id2])
+        #     circ_result = re.search(circuitRegex, line)
+        #     circ_id = circ_result.group()[:-2].strip()
+        #     if full_reg:
+        #         for i in range(len(buggyID[circ_id])):
+        #             buggyID[circ_id][i] += 1
+        #     else:
+        #         buggyID[circ_id][qubit_id] += 1
+
+        # for line in patchedList:
+        #     qbit_result = re.search(qubitRegex, line)
+        #     full_reg = False
+        #     if qbit_result is None:
+        #         continue
+        #     qubit_id = qbit_result.group()[3:-1]
+        #     if qubit_id.isnumeric():
+        #         qubit_id = int(qubit_id)
+        #     else:
+        #         sqb_pattern = r"\[.*\]"
+        #         if re.search(sqb_pattern, qubit_id) is None:
+        #             full_reg = True
+        #         else:
+        #             id1 = qubit_id.find("[")
+        #             id2 = qubit_id.rfind("]")
+        #             qubit_id = int(qubit_id[id1 + 1 : id2])
+        #     circ_result = re.search(circuitRegex, line)
+        #     circ_id = circ_result.group()[:-2].strip()
+        #     if full_reg:
+        #         for i in range(len(patchedID[circ_id])):
+        #             patchedID[circ_id][i] += 1
+        #     else:
+        #         patchedID[circ_id][qubit_id] += 1
+        
+        # if not buggyID:
+        buggyID = defaultdict(lambda: defaultdict(int))
+        # if not patchedID:
+        patchedID = defaultdict(lambda: defaultdict(int))
+
         for line in buggyList:
             qbit_result = re.search(qubitRegex, line)
             full_reg = False
             if qbit_result is None:
                 continue
-            qubit_id = qbit_result.group()[3:-1]
-            if qubit_id.isnumeric():
-                qubit_id = int(qubit_id)
+
+            # Extract inside of .h(...)
+            qubit_arg = qbit_result.group()[3:-1].strip()  # e.g., "0", "q[3]", "[0,1,2]", "q"
+
+            # Determine indices to update
+            indices = []
+
+            # Case: list literal like [0,1,2]
+            if qubit_arg.startswith("[") and qubit_arg.endswith("]"):
+                inner = qubit_arg[1:-1]
+                for part in inner.split(","):
+                    part = part.strip()
+                    if part.isdigit():
+                        indices.append(int(part))
+                    else:
+                        # Could be more complex; skip non-integers for now
+                        pass
+            # Case: single numeric index
+            elif qubit_arg.isdigit():
+                indices.append(int(qubit_arg))
+            # Case: something like q[3]
             else:
-                sqb_pattern = r"\[.*\]"
-                if re.search(sqb_pattern, qubit_id) is None:
-                    full_reg = True
+                m = re.match(r".*\[(\d+)\].*", qubit_arg)
+                if m:
+                    indices.append(int(m.group(1)))
                 else:
-                    id1 = qubit_id.find("[")
-                    id2 = qubit_id.rfind("]")
-                    qubit_id = int(qubit_id[id1 + 1 : id2])
+                    # Treat as full register (e.g., qc.h(q))
+                    full_reg = True
+
+            # Extract circuit identifier (e.g., "qc" from "qc.h")
             circ_result = re.search(circuitRegex, line)
+            if circ_result is None:
+                continue
             circ_id = circ_result.group()[:-2].strip()
+            # if circ_id not in buggyID:
+            #     buggyID[circ_id] = [0]*qubits
+
             if full_reg:
-                for i in range(len(buggyID[circ_id])):
+                for i in range(len(buggyID[circ_id].keys())):
                     buggyID[circ_id][i] += 1
             else:
-                buggyID[circ_id][qubit_id] += 1
+                for idx in indices:
+                    if 0 <= idx < len(buggyID[circ_id].keys()):
+                        buggyID[circ_id][idx] += 1
 
         for line in patchedList:
             qbit_result = re.search(qubitRegex, line)
             full_reg = False
             if qbit_result is None:
                 continue
-            qubit_id = qbit_result.group()[3:-1]
-            if qubit_id.isnumeric():
-                qubit_id = int(qubit_id)
+
+            # Extract inside of .h(...)
+            qubit_arg = qbit_result.group()[3:-1].strip()  # e.g., "0", "q[3]", "[0,1,2]", "q"
+
+            # Determine indices to update
+            indices = []
+
+            # Case: list literal like [0,1,2]
+            if qubit_arg.startswith("[") and qubit_arg.endswith("]"):
+                inner = qubit_arg[1:-1]
+                for part in inner.split(","):
+                    part = part.strip()
+                    if part.isdigit():
+                        indices.append(int(part))
+                    else:
+                        # Could be more complex; skip non-integers for now
+                        pass
+            # Case: single numeric index
+            elif qubit_arg.isdigit():
+                indices.append(int(qubit_arg))
+            # Case: something like q[3]
             else:
-                sqb_pattern = r"\[.*\]"
-                if re.search(sqb_pattern, qubit_id) is None:
-                    full_reg = True
+                m = re.match(r".*\[(\d+)\].*", qubit_arg)
+                if m:
+                    indices.append(int(m.group(1)))
                 else:
-                    id1 = qubit_id.find("[")
-                    id2 = qubit_id.rfind("]")
-                    qubit_id = int(qubit_id[id1 + 1 : id2])
+                    # Treat as full register (e.g., qc.h(q))
+                    full_reg = True
+
+            # Extract circuit identifier (e.g., "qc" from "qc.h")
             circ_result = re.search(circuitRegex, line)
+            if circ_result is None:
+                continue
             circ_id = circ_result.group()[:-2].strip()
+            # if circ_id not in patchedID:
+            #     patchedID[circ_id] = [0]*qubits
             if full_reg:
-                for i in range(len(patchedID[circ_id])):
+                for i in range(len(patchedID[circ_id].keys())):
                     patchedID[circ_id][i] += 1
             else:
-                patchedID[circ_id][qubit_id] += 1
+                for idx in indices:
+                    if 0 <= idx < len(patchedID[circ_id].keys()):
+                        patchedID[circ_id][idx] += 1
+
 
         for circ in buggyID:
             if circ in patchedID:
-                for i in range(min(len(buggyID[circ]), len(patchedID[circ]))):
+                for i in range(min(len(buggyID[circ].keys()), len(patchedID[circ].keys()))):
                     if buggyID[circ][i] % 2 != 0 and patchedID[circ][i] % 2 == 0:
                         return True
         return False
