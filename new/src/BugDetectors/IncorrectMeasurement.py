@@ -71,7 +71,6 @@ class IncorrectMeasurement():
         regexPattern = ".+\.measure.*"
         buggy, patched = codeSample[0], codeSample[1]
         buggyMeasures, patchedMeasures = {}, {}
-        buggyMeasure, patchedMeasure = {}, {}
         buggyList = list(filter(("").__ne__, buggy.split("\n")))
         patchedList = list(filter(("").__ne__, patched.split("\n")))
         buggyLine, patchedLine = {}, {}
@@ -94,13 +93,13 @@ class IncorrectMeasurement():
             """ Using the AST to deduce if there is measure function amongst the aforementioned types."""
             if isinstance(node, ast.Expr):
                 if isinstance(node.value.func, ast.Attribute) and getattr(node, "value").func.attr in availableMeasurementFunctions:
-                    if getattr(node, "value").func.value.id not in buggyMeasure:
-                        buggyMeasure[getattr(node, "value").func.value.id] = []
-                        buggyMeasure[getattr(node, "value").func.value.id].append(
+                    if getattr(node, "value").func.value.id not in buggyMeasures:
+                        buggyMeasures[getattr(node, "value").func.value.id] = []
+                        buggyMeasures[getattr(node, "value").func.value.id].append(
                             getattr(node, "value").func.attr
                         )
                     else:
-                        buggyMeasure[getattr(node, "value").func.value.id].append(
+                        buggyMeasures[getattr(node, "value").func.value.id].append(
                             getattr(node, "value").func.attr
                         )
 
@@ -109,7 +108,7 @@ class IncorrectMeasurement():
             if isinstance(node, ast.Assign):
                 for id in getattr(node, "targets"):
                     if (
-                        id.id not in buggyMeasures
+                        id.id not in patchedMeasures
                         and isinstance(node.value, ast.Call)
                         and isinstance(node.value.func, ast.Name)
                         and getattr(node, "value").func.id == "QuantumCircuit"
@@ -118,13 +117,13 @@ class IncorrectMeasurement():
 
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
                 if isinstance(node.value.func, ast.Attribute) and getattr(node, "value").func.attr in availableMeasurementFunctions:
-                    if getattr(node, "value").func.value.id not in patchedMeasure:
-                        patchedMeasure[getattr(node, "value").func.value.id] = []
-                        patchedMeasure[getattr(node, "value").func.value.id].append(
+                    if getattr(node, "value").func.value.id not in patchedMeasures:
+                        patchedMeasures[getattr(node, "value").func.value.id] = []
+                        patchedMeasures[getattr(node, "value").func.value.id].append(
                             getattr(node, "value").func.attr
                         )
                     else:
-                        patchedMeasure[getattr(node, "value").func.value.id].append(
+                        patchedMeasures[getattr(node, "value").func.value.id].append(
                             getattr(node, "value").func.attr
                         )
 
@@ -132,19 +131,19 @@ class IncorrectMeasurement():
         in buggy code to the QuantumCircuits in patched code. """
 
         if len(buggyMeasures) != len(patchedMeasures):
-            return False
+            return True
 
         """ Assuming the existence of a singleton Quantum Circuit object,
             deduces if the number of instances of a measurement function
             is equal in both codes."""
-        if len(buggyMeasure) != len(patchedMeasure):
+        if len(buggyMeasures) != len(patchedMeasures):
             return True
 
         """ Deduce whether the exact same measure functions are being used in both codes."""
-        buggyKeys, patchedKeys = list(buggyMeasure.keys()), list(patchedMeasure.keys())
+        buggyKeys, patchedKeys = list(buggyMeasures.keys()), list(patchedMeasures.keys())
 
         for i in range(len(buggyKeys)):
-            if buggyMeasure[buggyKeys[i]] != patchedMeasure[patchedKeys[i]]:
+            if buggyMeasures[buggyKeys[i]] != patchedMeasures[patchedKeys[i]]:
                 return True
 
         for line in range(len(buggyList)):
@@ -188,7 +187,7 @@ class IncorrectMeasurement():
             patchedArgs.append(self._returnArgs(patchedKey))
 
         if len(buggyArgs) != len(patchedArgs):
-            return False
+            return True
 
         for i in range(len(buggyArgs)):
             if buggyArgs[i].shape != patchedArgs[i].shape:
