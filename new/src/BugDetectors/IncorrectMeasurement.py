@@ -150,12 +150,36 @@ class IncorrectMeasurement():
         for line in range(len(buggyList)):
             tempStatus = re.search(regexPattern, buggyList[line])
             if tempStatus is not None:
-                buggyLine[buggyList[line].split("measure")[1]] = line
+                # buggyLine[buggyList[line].split("measure")[1]] = line
+                if "measure_inactive" in buggyList[line]:
+                    parts = buggyList[line].split("measure_inactive", 1)
+                    if len(parts) > 1:
+                        buggyLine[parts[1]] = line
+                elif "measure_all" in buggyList[line]:
+                    parts = buggyList[line].split("measure_all", 1)
+                    if len(parts) > 1:
+                        buggyLine[parts[1]] = line
+                elif "measure" in buggyList[line]:
+                    parts = buggyList[line].split("measure", 1)
+                    if len(parts) > 1:
+                        buggyLine[parts[1]] = line
 
         for line in range(len(patchedList)):
             tempStatus = re.search(regexPattern, patchedList[line])
             if tempStatus is not None:
-                patchedLine[patchedList[line].split("measure")[1]] = line
+                # patchedLine[patchedList[line].split("measure")[1]] = line
+                if "measure_inactive" in patchedList[line]:
+                    parts = patchedList[line].split("measure_inactive", 1)
+                    if len(parts) > 1:
+                        patchedLine[parts[1]] = line
+                elif "measure_all" in patchedList[line]:
+                    parts = patchedList[line].split("measure_all", 1)
+                    if len(parts) > 1:
+                        patchedLine[parts[1]] = line
+                elif "measure" in patchedList[line]:
+                    parts = patchedList[line].split("measure", 1)
+                    if len(parts) > 1:
+                        patchedLine[parts[1]] = line
 
         for buggyKey in buggyLine.keys():
             buggyArgs.append(self._returnArgs(buggyKey))
