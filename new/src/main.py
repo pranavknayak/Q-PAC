@@ -25,12 +25,36 @@ def infer_label(bugErrorMessage):
     - Initialization errors -> 'Qubit/Initialization-related'
     Otherwise -> 'not a bug'
     """
-    if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
-        return 'Operator-related'
-    if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
-        return 'Measurement-related'
+    # if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
+    #     return 'Operator-related'
+    # if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
+    #     return 'Measurement-related'
+    # if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
+    #     return 'Qubit/Initialization-related'
+
     if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
-        return 'Qubit/Initialization-related'
+        return 'Initialization'
+    if bugErrorMessage.get('IncorrectInit') and bugErrorMessage['IncorrectInit'] != 'None':
+        return 'IncorrectInit'
+    if bugErrorMessage.get('IncorrectRegisters') and bugErrorMessage['IncorrectRegisters'] != 'None':
+        return 'IncorrectRegisters'
+    if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
+        return 'Measurement'
+    if bugErrorMessage.get('IncorrectMeasurement') and bugErrorMessage['IncorrectMeasurement'] != 'None':
+        return 'IncorrectMeasurement'
+    if bugErrorMessage.get('IncorrectNumberOfSamples') and bugErrorMessage['IncorrectNumberOfSamples'] != 'None':
+        return 'IncorrectNumberOfSamples'
+    if bugErrorMessage.get('IncorrectDecisionToMeasure') and bugErrorMessage['IncorrectDecisionToMeasure'] != 'None':
+        return 'IncorrectDecisionToMeasure'
+    if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
+        return 'Unitary'
+    if bugErrorMessage.get('IncorrectGate') and bugErrorMessage['IncorrectGate'] != 'None':
+        return 'IncorrectGate'
+    if bugErrorMessage.get('IncorrectHadamard') and bugErrorMessage['IncorrectHadamard'] != 'None':
+        return 'IncorrectHadamard'
+    if bugErrorMessage.get('RootDetector') and bugErrorMessage['RootDetector'] != 'None':
+        return 'RootDetector'
+
     return 'not a bug'
 
 

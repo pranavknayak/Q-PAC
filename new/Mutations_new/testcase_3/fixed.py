@@ -1,5 +1,4 @@
 # fixed version
-# fixed version
 q = QuantumRegister(2)
 c = ClassicalRegister(2) 
 grover_circuit = QuantumCircuit(q, c)
