@@ -55,7 +55,7 @@ class BugInvestigator():
         #print(f"Processing class: {current_class} and bug_type: {check_bug_type}")
         
         # If bug-fix belongs to the class, Iterate children
-        print(current_class, check_bug_type ,sep="=")
+        # print(current_class, check_bug_type ,sep="=")
         if check_bug_type == True:
             if current_class in self._class_hierarchy:
                 for child_class in self._class_hierarchy[current_class]:
@@ -70,7 +70,7 @@ class BugInvestigator():
         #for node in ast.walk(self.ast_sample[0]):
         #    print(ast.dump(node), "************", sep="\n")
         self._iterate_collection()
-        print("Final Bug Detector Message:", self.bug_detector_message)
+        # print("Final Bug Detector Message:", self.bug_detector_message)
         return self.bug_detector_message
         
         

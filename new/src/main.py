@@ -4,6 +4,8 @@ import argparse
 from BugInvestigator import BugInvestigator
 from CodeProcessor import CodeProcessor
 from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.preprocessing import MultiLabelBinarizer
+import numpy as np
 
 def find_leaf_dirs_with_bug_fix(base_dir):
     """
@@ -32,30 +34,38 @@ def infer_label(bugErrorMessage):
     # if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
     #     return 'Qubit/Initialization-related'
 
-    if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
-        return 'Initialization'
-    if bugErrorMessage.get('IncorrectInit') and bugErrorMessage['IncorrectInit'] != 'None':
-        return 'IncorrectInit'
-    if bugErrorMessage.get('IncorrectRegisters') and bugErrorMessage['IncorrectRegisters'] != 'None':
-        return 'IncorrectRegisters'
-    if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
-        return 'Measurement'
-    if bugErrorMessage.get('IncorrectMeasurement') and bugErrorMessage['IncorrectMeasurement'] != 'None':
-        return 'IncorrectMeasurement'
-    if bugErrorMessage.get('IncorrectNumberOfSamples') and bugErrorMessage['IncorrectNumberOfSamples'] != 'None':
-        return 'IncorrectNumberOfSamples'
-    if bugErrorMessage.get('IncorrectDecisionToMeasure') and bugErrorMessage['IncorrectDecisionToMeasure'] != 'None':
-        return 'IncorrectDecisionToMeasure'
-    if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
-        return 'Unitary'
-    if bugErrorMessage.get('IncorrectGate') and bugErrorMessage['IncorrectGate'] != 'None':
-        return 'IncorrectGate'
-    if bugErrorMessage.get('IncorrectHadamard') and bugErrorMessage['IncorrectHadamard'] != 'None':
-        return 'IncorrectHadamard'
-    if bugErrorMessage.get('RootDetector') and bugErrorMessage['RootDetector'] != 'None':
-        return 'RootDetector'
+    # if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
+    #     return 'Initialization'
+    # if bugErrorMessage.get('IncorrectInit') and bugErrorMessage['IncorrectInit'] != 'None':
+    #     return 'IncorrectInit'
+    # if bugErrorMessage.get('IncorrectRegisters') and bugErrorMessage['IncorrectRegisters'] != 'None':
+    #     return 'IncorrectRegisters'
+    # if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
+    #     return 'Measurement'
+    # if bugErrorMessage.get('IncorrectMeasurement') and bugErrorMessage['IncorrectMeasurement'] != 'None':
+    #     return 'IncorrectMeasurement'
+    # if bugErrorMessage.get('IncorrectNumberOfSamples') and bugErrorMessage['IncorrectNumberOfSamples'] != 'None':
+    #     return 'IncorrectNumberOfSamples'
+    # if bugErrorMessage.get('IncorrectDecisionToMeasure') and bugErrorMessage['IncorrectDecisionToMeasure'] != 'None':
+    #     return 'IncorrectDecisionToMeasure'
+    # if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
+    #     return 'Unitary'
+    # if bugErrorMessage.get('IncorrectGate') and bugErrorMessage['IncorrectGate'] != 'None':
+    #     return 'IncorrectGate'
+    # if bugErrorMessage.get('IncorrectHadamard') and bugErrorMessage['IncorrectHadamard'] != 'None':
+    #     return 'IncorrectHadamard'
+    # if bugErrorMessage.get('RootDetector') and bugErrorMessage['RootDetector'] != 'None':
+    #     return 'RootDetector'
+    # return 'not a bug'
+    
+    pred_label = []
+    for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement','IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectGate','IncorrectHadamard']:
+        if bugErrorMessage[bugType]!='None':
+            pred_label.append(bugType)
+    if(pred_label == []):
+        pred_label.append('not a bug')
+    return pred_label
 
-    return 'not a bug'
 
 
 def main():
@@ -77,15 +87,24 @@ def main():
     y_true = []
     y_pred = []
 
+    # true_label = []
+    accuracy_array = []
+    precision_array = []
+    recall_array = []
+
     # Iterate through all leaf dirs with both bug and fix files
     for dirpath, bug_files, fix_files in find_leaf_dirs_with_bug_fix(test_base_dir):
+        true_label = []
         # read ground-truth label
         label_file = os.path.join(dirpath, 'label.txt')
         if not os.path.isfile(label_file):
             print(f"Skipping {dirpath}: no label.txt")
             continue
         with open(label_file, 'r') as lf:
-            true_label = lf.read().strip()
+            # true_label_subarray.extend(line.rstrip("\n") for line in lf)
+            true_label.extend(line.rstrip("\n") for line in lf)
+        
+        # true_label.append(true_label_subarray)
 
         buggy_path = os.path.join(dirpath, bug_files[0])
         fixed_path = os.path.join(dirpath, fix_files[0])
@@ -99,6 +118,9 @@ def main():
             bugErrorMessage = bug_investigator.detect_pattern(test)
             pred_label = infer_label(bugErrorMessage)
 
+            mlb = MultiLabelBinarizer()
+            mlb.fit(true_label + pred_label)  # get all possible labels
+
             print(f"Dir: {dirpath}")
             print(f"  True Label: {true_label}")
             print(f"  Pred Label: {pred_label}")
@@ -106,21 +128,40 @@ def main():
             y_true.append(true_label)
             y_pred.append(pred_label)
 
+            true_bin = mlb.transform(true_label)
+            pred_bin = mlb.transform(pred_label)
+
+            accuracy = accuracy_score(true_bin, pred_bin)
+            precision = precision_score(true_bin, pred_bin, average='micro')
+            recall = recall_score(true_bin, pred_bin, average='micro')
+
+            accuracy_array.append(accuracy)
+            precision_array.append(precision)
+            recall_array.append(recall)
+
         except Exception:
             print(f"ERROR AT {dirpath}")
             traceback.print_exc()
 
+    if(accuracy_array):
+        accuracy_array = np.array(accuracy_array)
+        recall_array = np.array(recall_array)
+        precision_array = np.array(precision_array)
+        print("Average Accuracy = ", np.mean(accuracy_array))
+        print("Average Recall = ", np.mean(recall_array))
+        print("Average Precision = ", np.mean(precision_array))
+
     # Compute and print metrics
-    if y_true:
-        acc = accuracy_score(y_true, y_pred)
-        prec = precision_score(y_true, y_pred, average='macro', zero_division=0)
-        rec = recall_score(y_true, y_pred, average='macro', zero_division=0)
-        print("\nEvaluation Metrics:")
-        print(f"  Accuracy: {acc:.4f}")
-        print(f"  Precision: {prec:.4f}")
-        print(f"  Recall: {rec:.4f}")
-    else:
-        print("No labeled testcases processed.")
+    # if y_true:
+    #     acc = accuracy_score(y_true, y_pred)
+    #     prec = precision_score(y_true, y_pred, average='macro', zero_division=0)
+    #     rec = recall_score(y_true, y_pred, average='macro', zero_division=0)
+    #     print("\nEvaluation Metrics:")
+    #     print(f"  Accuracy: {acc:.4f}")
+    #     print(f"  Precision: {prec:.4f}")
+    #     print(f"  Recall: {rec:.4f}")
+    # else:
+    #     print("No labeled testcases processed.")
 
 if __name__ == "__main__":
     main()
