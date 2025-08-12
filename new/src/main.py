@@ -58,13 +58,50 @@ def infer_label(bugErrorMessage):
     #     return 'RootDetector'
     # return 'not a bug'
     
+    # pred_label = []
+    # for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement','IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectGate','IncorrectHadamard']:
+    #     if bugErrorMessage[bugType]!='None':
+    #         pred_label.append(bugType)
+    # if(pred_label == []):
+    #     pred_label.append('not a bug')
+    # return pred_label
+
     pred_label = []
-    for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement','IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectGate','IncorrectHadamard']:
-        if bugErrorMessage[bugType]!='None':
-            pred_label.append(bugType)
+
+    if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
+        pred_label.append('Initialization')
+    if bugErrorMessage.get('IncorrectInit') and bugErrorMessage['IncorrectInit'] != 'None':
+        pred_label.append('IncorrectInit')
+    if bugErrorMessage.get('IncorrectRegisters') and bugErrorMessage['IncorrectRegisters'] != 'None':
+        pred_label.append('IncorrectRegisters')
+    if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
+        pred_label.append('Measurement')
+    if bugErrorMessage.get('IncorrectMeasurement') and bugErrorMessage['IncorrectMeasurement'] != 'None':
+        pred_label.append('IncorrectMeasurement')
+    if bugErrorMessage.get('IncorrectNumberOfSamples') and bugErrorMessage['IncorrectNumberOfSamples'] != 'None':
+        pred_label.append('IncorrectNumberOfSamples')
+    if bugErrorMessage.get('IncorrectDecisionToMeasure') and bugErrorMessage['IncorrectDecisionToMeasure'] != 'None':
+        pred_label.append('IncorrectDecisionToMeasure')
+    if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
+        pred_label.append('Unitary')
+    if bugErrorMessage.get('IncorrectGate') and bugErrorMessage['IncorrectGate'] != 'None':
+        pred_label.append('IncorrectGate')
+    if bugErrorMessage.get('IncorrectHadamard') and bugErrorMessage['IncorrectHadamard'] != 'None':
+        pred_label.append('IncorrectHadamard')
+    if bugErrorMessage.get('RootDetector') and bugErrorMessage['RootDetector'] != 'None':
+        pred_label.append('RootDetector')
+
     if(pred_label == []):
         pred_label.append('not a bug')
+
     return pred_label
+
+
+def encode_labels(labels, label_to_idx):
+    vec = [0] * len(label_to_idx)
+    for label in labels:
+        vec[label_to_idx[label]] = 1
+    return vec
 
 
 
@@ -91,6 +128,23 @@ def main():
     accuracy_array = []
     precision_array = []
     recall_array = []
+
+    # Assigning values to each bug type
+    all_labels = [
+        'Initialization',
+        'IncorrectInit',
+        'IncorrectRegisters',
+        'Measurement',
+        'IncorrectMeasurement',
+        'IncorrectNumberOfSamples',
+        'IncorrectDecisionToMeasure',
+        'Unitary',
+        'IncorrectGate',
+        'IncorrectHadamard',
+        'RootDetector',
+        'not a bug'
+    ]
+    label_to_idx = {label: i for i, label in enumerate(all_labels)}
 
     # Iterate through all leaf dirs with both bug and fix files
     for dirpath, bug_files, fix_files in find_leaf_dirs_with_bug_fix(test_base_dir):
@@ -128,8 +182,14 @@ def main():
             y_true.append(true_label)
             y_pred.append(pred_label)
 
-            true_bin = mlb.transform(true_label)
-            pred_bin = mlb.transform(pred_label)
+            # true_bin = mlb.transform(true_label)
+            # pred_bin = mlb.transform(pred_label)
+
+            true_bin = [encode_labels(true_label, label_to_idx)]
+            pred_bin = [encode_labels(pred_label, label_to_idx)]
+
+            print("true bin: ", true_bin)
+            print("pred bin: ", pred_bin)
 
             accuracy = accuracy_score(true_bin, pred_bin)
             precision = precision_score(true_bin, pred_bin, average='micro')

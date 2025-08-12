@@ -1,6 +1,7 @@
 import ast
 import re
 import numpy as np
+from safeEval import safeEval
 
 class IncorrectMeasurement():
     def _extractIters(self, node: ast.For):
@@ -58,9 +59,9 @@ class IncorrectMeasurement():
         for args in range(len(paren)):
             if isinstance(paren[args], list):
                 for index in range(len(paren[args])):
-                    paren[args][index] = eval(paren[args][index])
+                    paren[args][index] = safeEval(paren[args][index])
             else:
-                paren[args] = eval(paren[args])
+                paren[args] = safeEval(paren[args])
 
         return np.array(paren)
 
@@ -148,18 +149,20 @@ class IncorrectMeasurement():
 
         for line in range(len(buggyList)):
             tempStatus = re.search(regexPattern, buggyList[line])
+            # Ensure the commented part is not considered
+            code_part = buggyList[line].split('#', 1)[0].strip()
             if tempStatus is not None:
                 # buggyLine[buggyList[line].split("measure")[1]] = line
                 if "measure_inactive" in buggyList[line]:
-                    parts = buggyList[line].split("measure_inactive", 1)
+                    parts = code_part[line].split("measure_inactive", 1)
                     if len(parts) > 1:
                         buggyLine[parts[1]] = line
                 elif "measure_all" in buggyList[line]:
-                    parts = buggyList[line].split("measure_all", 1)
+                    parts = code_part[line].split("measure_all", 1)
                     if len(parts) > 1:
                         buggyLine[parts[1]] = line
                 elif "measure" in buggyList[line]:
-                    parts = buggyList[line].split("measure", 1)
+                    parts = code_part[line].split("measure", 1)
                     if len(parts) > 1:
                         buggyLine[parts[1]] = line
 
