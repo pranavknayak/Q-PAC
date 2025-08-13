@@ -103,6 +103,12 @@ def encode_labels(labels, label_to_idx):
         vec[label_to_idx[label]] = 1
     return vec
 
+def remove_comments(code):
+    return "\n".join(
+        line.split('#', 1)[0].rstrip().lstrip()
+        for line in code.splitlines()
+        if line.strip() and not line.strip().startswith('#')
+    )
 
 
 def main():
@@ -142,7 +148,8 @@ def main():
         'IncorrectGate',
         'IncorrectHadamard',
         'RootDetector',
-        'not a bug'
+        'not a bug',
+        'Circuit-related'
     ]
     label_to_idx = {label: i for i, label in enumerate(all_labels)}
 
@@ -168,6 +175,9 @@ def main():
                 buggy_code = fb.read()
                 fixed_code = ff.read()
 
+            buggy_code = remove_comments(buggy_code)
+            fixed_code = remove_comments(fixed_code)
+
             test = CodeProcessor(buggy_code, fixed_code)
             bugErrorMessage = bug_investigator.detect_pattern(test)
             pred_label = infer_label(bugErrorMessage)
@@ -182,16 +192,23 @@ def main():
             y_true.append(true_label)
             y_pred.append(pred_label)
 
-            # true_bin = mlb.transform(true_label)
-            # pred_bin = mlb.transform(pred_label)
-
             true_bin = [encode_labels(true_label, label_to_idx)]
             pred_bin = [encode_labels(pred_label, label_to_idx)]
 
-            print("true bin: ", true_bin)
-            print("pred bin: ", pred_bin)
+            # accuracy = accuracy_score(true_bin, pred_bin)
 
-            accuracy = accuracy_score(true_bin, pred_bin)
+            num = 0
+            den = 0
+
+            for actual_label, predicted_label in zip(true_bin, pred_bin):
+                if actual_label == predicted_label and actual_label != 0:
+                    num += 1
+                    den += 1
+                elif actual_label != predicted_label:
+                    den += 1
+            
+            accuracy = num / den if den > 0 else 0
+
             precision = precision_score(true_bin, pred_bin, average='micro')
             recall = recall_score(true_bin, pred_bin, average='micro')
 
