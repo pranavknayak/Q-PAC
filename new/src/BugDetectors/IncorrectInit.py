@@ -1,6 +1,7 @@
 import ast
 import re
 import numpy as np
+from safeEval import safeEval
 
 class IncorrectInit():
     def _returnArgs(self, args):
@@ -51,12 +52,12 @@ class IncorrectInit():
             if isinstance(paren[args], list):
                 for index in range(len(paren[args])):
                     try:
-                        paren[args][index] = eval(paren[args][index])
+                        paren[args][index] = safeEval(paren[args][index], {})
                     except NameError:
                         continue
             else:
                 try:
-                    paren[args] = eval(paren[args])
+                    paren[args] = safeEval(paren[args], {})
                 except NameError:
                     continue
 
