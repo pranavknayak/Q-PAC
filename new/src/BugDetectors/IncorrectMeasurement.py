@@ -59,9 +59,9 @@ class IncorrectMeasurement():
         for args in range(len(paren)):
             if isinstance(paren[args], list):
                 for index in range(len(paren[args])):
-                    paren[args][index] = safeEval(paren[args][index])
+                    paren[args][index] = safeEval(paren[args][index], {})
             else:
-                paren[args] = safeEval(paren[args])
+                paren[args] = safeEval(paren[args], {})
 
         return np.array(paren)
 
