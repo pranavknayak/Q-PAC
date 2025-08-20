@@ -3,7 +3,7 @@ import re
 import numpy as np
 from safeEval import safeEval
 
-class IncorrectMeasurement():
+class ExcessiveMeasurements():
     def _extractIters(self, node: ast.For):
         target = ast.Name(node.target)
         target_id = target.id
@@ -291,50 +291,20 @@ class IncorrectMeasurement():
         return False
 
 
-    # def _detectIncorrectMeasurement(self, codeSample, astSample):
-    #     status = False
-    #     bugTypeMessage1 = "Measurement(s) performed incorrectly"
-    #     bugTypeMessage2 = "Excessive measurements performed"
-    #     try:
-    #         status1 = self._measurementRegisterError(codeSample, astSample)
-    #         print("measurementRegister WORKS")
-    #     except:
-    #         status1 = False
-    #         # status1 = True
-    #         print("error in measurementRegisterError")
-    #         raise
-    #     try:
-    #         status2 = self._repeatedMeasurementError(codeSample, astSample)
-    #         print("repeatedMeasurement WORKS")
-    #     except:
-    #         status2 = False
-    #         # status2 = True
-    #         print("error in repeatedMeasurementError")
-    #         raise
-    #     bugTypeMessage = ''
-    #     if status1 and status2:
-    #         bugTypeMessage += bugTypeMessage1 + ' and ' + bugTypeMessage2 + '.'
-    #     elif status1:
-    #         bugTypeMessage += bugTypeMessage1 + '.'
-    #     elif status2:
-    #         bugTypeMessage += bugTypeMessage2 + '.'
-    #     status = status1 or status2
-
-    #     return status, bugTypeMessage
     def _detectIncorrectMeasurement(self, codeSample, astSample):
         status = False
-        bugTypeMessage1 = "Measurement(s) performed incorrectly"
+        bugTypeMessage2 = "Excessive measurements performed"
         try:
-            status1 = self._measurementRegisterError(codeSample, astSample)
-            print("measurementRegister WORKS")
+            status = self._repeatedMeasurementError(codeSample, astSample)
+            print("repeatedMeasurement WORKS")
         except:
-            status1 = False
-            # status1 = True
-            print("error in measurementRegisterError")
+            status = False
+            # status2 = True
+            print("error in repeatedMeasurementError")
             raise
         bugTypeMessage = ''
         if status:
-            bugTypeMessage += bugTypeMessage1 + '.'
+            bugTypeMessage += bugTypeMessage2 + '.'
 
         return status, bugTypeMessage
     
