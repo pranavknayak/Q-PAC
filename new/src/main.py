@@ -137,19 +137,21 @@ def main():
 
     # Assigning values to each bug type
     all_labels = [
-        'Initialization',
+        # 'Initialization',
         'IncorrectInit',
         'IncorrectRegisters',
-        'Measurement',
+        # 'Measurement',
         'IncorrectMeasurement',
         'IncorrectNumberOfSamples',
         'IncorrectDecisionToMeasure',
-        'Unitary',
+        # 'Unitary',
         'IncorrectGate',
         'IncorrectHadamard',
-        'RootDetector',
+        'ExcessiveMeasurements',
+        # 'RootDetector',
         'not a bug',
-        'Circuit-related'
+        # 'Circuit-related',
+        # 'Operator-related'   
     ]
     label_to_idx = {label: i for i, label in enumerate(all_labels)}
 
@@ -190,7 +192,7 @@ def main():
             print(f"  Pred Label: {pred_label}")
 
             y_true.append(true_label)
-            y_pred.append(pred_label)
+            y_pred.append(pred_label) 
 
             true_bin = [encode_labels(true_label, label_to_idx)]
             pred_bin = [encode_labels(pred_label, label_to_idx)]
@@ -200,7 +202,7 @@ def main():
             num = 0
             den = 0
 
-            for actual_label, predicted_label in zip(true_bin, pred_bin):
+            for actual_label, predicted_label in zip(true_bin[0], pred_bin[0]):
                 if actual_label == predicted_label and actual_label != 0:
                     num += 1
                     den += 1
