@@ -2,7 +2,7 @@ import ast
 import re
 import numpy as np
 
-class IncorrectGate():
+class IncorrectStandardGate():
     def _inbuiltGateError(self, codeSample, astSample):
         availableInbuiltGates = [
             "ccx",
@@ -204,34 +204,50 @@ class IncorrectGate():
         return False
 
 
+    # def _detectIncorrectGate(self, codeSample, astSample):
+    #     status = False
+    #     bugTypeMessage1 = "Incorrect usage of built-in gate(s)"
+    #     bugTypeMessage2 = "Incorrect usage of opaque gate(s)"
+    #     try:
+    #         status1 = self._inbuiltGateError(codeSample, astSample)
+    #         print("InbuiltGateError WORKS")
+    #     except:
+    #         status1 = False
+    #         print("error in inbuiltGateError")
+    #         raise
+
+    #     try:
+    #         status2 = self._customGateError(codeSample, astSample)
+    #         print("CustomGateError WORKS")
+    #     except:
+    #         status2 = False
+    #         print("error in customGateError")
+    #         raise
+
+    #     bugTypeMessage = ''
+    #     if status1 and status2:
+    #         bugTypeMessage = bugTypeMessage1 + " and " + bugTypeMessage2 + '.'
+    #     elif status1:
+    #         bugTypeMessage = bugTypeMessage1 + '.'
+    #     elif status2:
+    #         bugTypeMessage = bugTypeMessage2 + '.'
+    #     status = status1 or status2
+
+    #     return status, bugTypeMessage
     def _detectIncorrectGate(self, codeSample, astSample):
         status = False
         bugTypeMessage1 = "Incorrect usage of built-in gate(s)"
-        bugTypeMessage2 = "Incorrect usage of opaque gate(s)"
         try:
-            status1 = self._inbuiltGateError(codeSample, astSample)
+            status = self._inbuiltGateError(codeSample, astSample)
             print("InbuiltGateError WORKS")
         except:
-            status1 = False
+            status = False
             print("error in inbuiltGateError")
             raise
 
-        try:
-            status2 = self._customGateError(codeSample, astSample)
-            print("CustomGateError WORKS")
-        except:
-            status2 = False
-            print("error in customGateError")
-            raise
-
         bugTypeMessage = ''
-        if status1 and status2:
-            bugTypeMessage = bugTypeMessage1 + " and " + bugTypeMessage2 + '.'
-        elif status1:
+        if status:
             bugTypeMessage = bugTypeMessage1 + '.'
-        elif status2:
-            bugTypeMessage = bugTypeMessage2 + '.'
-        status = status1 or status2
 
         return status, bugTypeMessage
     

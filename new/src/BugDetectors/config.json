@@ -16,14 +16,17 @@
             "IncorrectDecisionToMeasure": {}
         },
         "Unitary": {
-            "IncorrectGate": {},
+            "IncorrectStandardGate": {},
+            "IncorrectOpaqueGate": {},
             "IncorrectHadamard": {},
             "IncorrectUnitary": {}
         },
         "IncorrectInit": {},
         "IncorrectRegisters": {},
         "IncorrectMeasurement": {},
-        "IncorrectGate": {},
+        "ExcessiveMeasurements": {},
+        "IncorrectStandardGate": {},
+        "IncorrectOpaqueGate": {},
         "IncorrectHadamard": {},
         "IncorrectUnitary": {}
     },

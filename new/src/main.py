@@ -28,7 +28,7 @@ def infer_label(bugErrorMessage):
     Otherwise -> 'not a bug'
     """
     pred_label = []
-    for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement', 'ExcessiveMeasurements', 'IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectGate','IncorrectHadamard']:
+    for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement', 'ExcessiveMeasurements', 'IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectStandardGate', 'IncorrectOpaqueGate', 'IncorrectHadamard']:
         if bugErrorMessage[bugType]!='None':
             pred_label.append(bugType)
     if(pred_label == []):
@@ -81,12 +81,14 @@ def main():
         'IncorrectRegisters',
         # 'Measurement',
         'IncorrectMeasurement',
+        'ExcessiveMeasurements',
         'IncorrectNumberOfSamples',
         'IncorrectDecisionToMeasure',
         # 'Unitary',
-        'IncorrectGate',
+        'IncorrectStandardGate',
+        'IncorrectOpaqueGate',
         'IncorrectHadamard',
-        'ExcessiveMeasurements',
+        'IncorrectUnitary',
         # 'RootDetector',
         'not a bug',
         # 'Circuit-related',
