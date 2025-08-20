@@ -68,28 +68,28 @@ def infer_label(bugErrorMessage):
 
     pred_label = []
 
-    if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
-        pred_label.append('Initialization')
+    # if bugErrorMessage.get('Initialization') and bugErrorMessage['Initialization'] != 'None':
+    #     pred_label.append('Initialization')
     if bugErrorMessage.get('IncorrectInit') and bugErrorMessage['IncorrectInit'] != 'None':
         pred_label.append('IncorrectInit')
     if bugErrorMessage.get('IncorrectRegisters') and bugErrorMessage['IncorrectRegisters'] != 'None':
         pred_label.append('IncorrectRegisters')
-    if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
-        pred_label.append('Measurement')
+    # if bugErrorMessage.get('Measurement') and bugErrorMessage['Measurement'] != 'None':
+    #     pred_label.append('Measurement')
     if bugErrorMessage.get('IncorrectMeasurement') and bugErrorMessage['IncorrectMeasurement'] != 'None':
         pred_label.append('IncorrectMeasurement')
     if bugErrorMessage.get('IncorrectNumberOfSamples') and bugErrorMessage['IncorrectNumberOfSamples'] != 'None':
         pred_label.append('IncorrectNumberOfSamples')
     if bugErrorMessage.get('IncorrectDecisionToMeasure') and bugErrorMessage['IncorrectDecisionToMeasure'] != 'None':
         pred_label.append('IncorrectDecisionToMeasure')
-    if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
-        pred_label.append('Unitary')
+    # if bugErrorMessage.get('Unitary') and bugErrorMessage['Unitary'] != 'None':
+    #     pred_label.append('Unitary')
     if bugErrorMessage.get('IncorrectGate') and bugErrorMessage['IncorrectGate'] != 'None':
         pred_label.append('IncorrectGate')
     if bugErrorMessage.get('IncorrectHadamard') and bugErrorMessage['IncorrectHadamard'] != 'None':
         pred_label.append('IncorrectHadamard')
-    if bugErrorMessage.get('RootDetector') and bugErrorMessage['RootDetector'] != 'None':
-        pred_label.append('RootDetector')
+    # if bugErrorMessage.get('RootDetector') and bugErrorMessage['RootDetector'] != 'None':
+    #     pred_label.append('RootDetector')
 
     if(pred_label == []):
         pred_label.append('not a bug')
