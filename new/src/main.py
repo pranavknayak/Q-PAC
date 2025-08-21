@@ -29,7 +29,7 @@ def infer_label(bugErrorMessage):
     """
     pred_label = []
     for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement', 'ExcessiveMeasurements', 'IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectStandardGate', 'IncorrectOpaqueGate', 'IncorrectHadamard']:
-        if bugErrorMessage[bugType]!='None':
+        if bugType in bugErrorMessage.keys() and bugErrorMessage[bugType]!='None':
             pred_label.append(bugType)
     if(pred_label == []):
         pred_label.append('not a bug')
@@ -51,6 +51,7 @@ def remove_comments(code):
 
 
 def main():
+    amt=0
     parser = argparse.ArgumentParser(description="Process test case directories for bug/fix detection and evaluate metrics.")
     parser.add_argument(
         "--test-base-dir", 
@@ -123,7 +124,10 @@ def main():
 
             test = CodeProcessor(buggy_code, fixed_code)
             bugErrorMessage = bug_investigator.detect_pattern(test)
+            print(bugErrorMessage)
             pred_label = infer_label(bugErrorMessage)
+            if 'IncorrectInit' in pred_label:
+                amt+=1
 
             mlb = MultiLabelBinarizer()
             mlb.fit(true_label + pred_label)  # get all possible labels
@@ -170,6 +174,7 @@ def main():
         print("Average Accuracy = ", np.mean(accuracy_array))
         print("Average Recall = ", np.mean(recall_array))
         print("Average Precision = ", np.mean(precision_array))
+        print(amt)
 
     # Compute and print metrics
     # if y_true:
