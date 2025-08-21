@@ -126,7 +126,7 @@ def main():
             bugErrorMessage = bug_investigator.detect_pattern(test)
             print(bugErrorMessage)
             pred_label = infer_label(bugErrorMessage)
-            if 'IncorrectInit' in pred_label:
+            if 'IncorrectMeasurement' in pred_label:
                 amt+=1
 
             mlb = MultiLabelBinarizer()

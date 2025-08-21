@@ -1,2 +1,2 @@
-IncorrectGate
+IncorrectStandardGate
 IncorrectHadamard

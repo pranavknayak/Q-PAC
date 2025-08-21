@@ -325,10 +325,10 @@ class IncorrectMeasurement():
         status = False
         bugTypeMessage1 = "Measurement(s) performed incorrectly"
         try:
-            status1 = self._measurementRegisterError(codeSample, astSample)
+            status = self._measurementRegisterError(codeSample, astSample)
             print("measurementRegister WORKS")
         except:
-            status1 = False
+            status = False
             # status1 = True
             print("error in measurementRegisterError")
             raise

@@ -20,15 +20,7 @@
             "IncorrectOpaqueGate": {},
             "IncorrectHadamard": {},
             "IncorrectUnitary": {}
-        },
-        "IncorrectInit": {},
-        "IncorrectRegisters": {},
-        "IncorrectMeasurement": {},
-        "ExcessiveMeasurements": {},
-        "IncorrectStandardGate": {},
-        "IncorrectOpaqueGate": {},
-        "IncorrectHadamard": {},
-        "IncorrectUnitary": {}
+        }
     },
     "root_class": "RootDetector"
 }
