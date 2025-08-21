@@ -7,6 +7,7 @@ class IncorrectStandardGate():
         availableInbuiltGates = [
             "ccx",
             "cx",
+            "cz",
             "h",
             "i",
             "p",
@@ -125,10 +126,11 @@ class IncorrectStandardGate():
 
         """ Checks if the number of gates used in both codes are the same."""
         if len(buggyGate) != len(patchedGate):
-            return False
+            return True
 
         """ Checks if any of the gates used are differenet, line by line in both the codes."""
         for index in range(len(buggyGate)):
+            # print(index, buggyGate[index], patchedGate[index])
             if buggyGate[index] != patchedGate[index]:
                 return True
 

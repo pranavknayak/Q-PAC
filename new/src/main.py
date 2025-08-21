@@ -62,9 +62,7 @@ def main():
     args = parser.parse_args()
     test_base_dir = args.test_base_dir
 
-    # Initialize BugInvestigator
-    bug_investigator = BugInvestigator("BugDetectors/config.json")
-    bug_investigator.build_class_hierarchy()
+    
 
     # Prepare lists for true and predicted labels
     y_true = []
@@ -123,8 +121,12 @@ def main():
             fixed_code = remove_comments(fixed_code)
 
             test = CodeProcessor(buggy_code, fixed_code)
+            # Initialize BugInvestigator
+            bug_investigator = BugInvestigator("BugDetectors/config.json")
+            bug_investigator.build_class_hierarchy()
+
             bugErrorMessage = bug_investigator.detect_pattern(test)
-            print(bugErrorMessage)
+            # print(bugErrorMessage)
             pred_label = infer_label(bugErrorMessage)
             if 'IncorrectMeasurement' in pred_label:
                 amt+=1
@@ -135,6 +137,7 @@ def main():
             print(f"Dir: {dirpath}")
             print(f"  True Label: {true_label}")
             print(f"  Pred Label: {pred_label}")
+            print('\n\n\n\n')
 
             y_true.append(true_label)
             y_pred.append(pred_label) 

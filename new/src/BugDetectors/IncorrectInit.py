@@ -70,6 +70,7 @@ class IncorrectInit():
         availableInbuiltGates = [
             "ccx",
             "cx",
+            "cz",
             "h",
             "i",
             "p",
@@ -163,7 +164,7 @@ class IncorrectInit():
         """ Considering the cases when there is a one to one mapping of the QuantumCircuits
         in buggy code to the QuantumCircuits in patched code. """
         if len(buggyID) != len(patchedID):
-            return False
+            return True
 
         """ Deduces if the arguments are amongst the possible arguments for an inbuilt
             gate operation in Qiskit, in both codes.
@@ -215,9 +216,11 @@ class IncorrectInit():
             else:
                 if np.array_equal(buggyQuantumValue[i], patchedQuantumValue[i]) == 0:
                     return True
-
+        print(list(enumerate(buggyGateValue)))
+        print(list(enumerate(patchedGateValue)))
         for i in range(len(buggyGateValue)):
             if buggyGateValue[i].shape != patchedGateValue[i].shape:
+                print(i, buggyGateValue[i], buggyGateValue[i].shape, patchedGateValue[i], patchedGateValue[i].shape)
                 return True
             else:
                 if np.array_equal(buggyGateValue[i], patchedGateValue[i]) == 0:

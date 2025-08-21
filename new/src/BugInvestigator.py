@@ -45,7 +45,7 @@ class BugInvestigator():
 
         if current_class == 'IncorrectUnitary':
             return 'None'
-        
+                
         self.bug_detector_message[current_class] = 'None'
         #cls = globals()[current_class]  # Get the class dynamically from its name
         cls = self.__import_class(self._bug_data_root_directory + "." + current_class, current_class)
