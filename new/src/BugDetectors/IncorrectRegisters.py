@@ -65,7 +65,6 @@ class IncorrectRegisters():
                     else:
                         count = 0
                 else:
-                    # print(args, args[1:2])
                     count = int(args[1:2])
                 buggyClassicalRegisters[register] = count
 

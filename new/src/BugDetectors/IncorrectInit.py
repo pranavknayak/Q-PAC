@@ -221,13 +221,6 @@ class IncorrectInit():
             patchedQuantum.values()
         )
 
-        print("OK")
-        print(buggyGate)
-        print(patchedGate)
-
-        print(buggyQuantum)
-        print(patchedQuantum)
-
 
         # for i in range(len(buggyQuantumValue)):
         #     if buggyQuantumValue[i].shape != patchedQuantumValue[i].shape:
@@ -237,9 +230,7 @@ class IncorrectInit():
         #             return True
 
         for quantum in set(buggyQuantum.keys()) | set(patchedQuantum.keys()):
-            print("Quantum: ", quantum)
             if quantum not in buggyQuantum:
-                print("AKDSJASHDASDJ")
                 return True
             
             if quantum not in patchedQuantum:

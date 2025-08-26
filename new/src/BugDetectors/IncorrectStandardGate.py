@@ -105,7 +105,7 @@ class IncorrectStandardGate():
         """ Considering the cases when there is a one to one mapping of the QuantumCircuits
         in buggy code to the QuantumCircuits in patched code. """
         if len(buggyID) != len(patchedID):
-            return False
+            return True
 
         """ Checks if the gate is amongst the available gates in Qiskit."""
         for line in buggyList:
@@ -125,14 +125,11 @@ class IncorrectStandardGate():
                     patchedGate.append(gate)
 
         """ Checks if the number of gates used in both codes are the same."""
-        print("buggygate: ", buggyGate)
-        print("pactche gate: ", patchedGate)
         if set(buggyGate) != set(patchedGate):
             return True
 
         """ Checks if any of the gates used are differenet, line by line in both the codes."""
         for index in range(len(buggyGate)):
-            # print(index, buggyGate[index], patchedGate[index])
             if buggyGate[index] != patchedGate[index]:
                 return True
 
