@@ -43,11 +43,16 @@ def encode_labels(labels, label_to_idx):
     return vec
 
 def remove_comments(code):
-    return "\n".join(
-        line.split('#', 1)[0].rstrip().lstrip()
-        for line in code.splitlines()
-        if line.strip() and not line.strip().startswith('#')
-    )
+    new_lines = []
+    for line in code.splitlines():
+        # Skip full-line comments
+        if line.strip().startswith('#') or not line.strip():
+            continue
+        # Remove inline comments, but keep leading spaces
+        if '#' in line:
+            line = line.split('#', 1)[0]
+        new_lines.append(line.rstrip())  # only strip the right side
+    return "\n".join(new_lines)
 
 
 def main():
@@ -109,7 +114,7 @@ def main():
             true_label.extend(line.rstrip("\n") for line in lf)
         
         # true_label.append(true_label_subarray)
-        if "IncorrectMeasurement" not in true_label and 'IncorrectInit' not in true_label:
+        if "IncorrectMeasurement" not in true_label and 'ExcessiveMeasurements' not in true_label:
             continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])
