@@ -152,9 +152,11 @@ class IncorrectOpaqueGate():
                                 and node.value.func.id == 'Gate'):
                             gate = node.value
                             for argument in gate.args:
-                                if isinstance(argument, ast.Constant) and argument.value > 2:
-                                    buggyGateIDs[target.id] = []
-                                    break
+                                print(argument.value)
+                                if isinstance(argument, ast.Constant):
+                                    if isinstance(argument.value, (int, float)) and argument.value > 2:
+                                        buggyGateIDs[target.id] = []
+                                        break
                             for kwargument in gate.keywords:
                                 if kwargument.arg == 'num_qubits' and kwargument.value.value > 2:
                                     buggyGateIDs[target.id] = []
@@ -179,9 +181,10 @@ class IncorrectOpaqueGate():
                                 and node.value.func.id == 'Gate'):
                             gate = node.value
                             for argument in gate.args:
-                                if isinstance(argument, ast.Constant) and argument.value > 2:
-                                    patchedGateIDs[target.id] = []
-                                    break
+                                if isinstance(argument, ast.Constant):
+                                    if isinstance(argument.value, (int, float)) and argument.value > 2:
+                                        patchedGateIDs[target.id] = []
+                                        break
                             for kwargument in gate.keywords:
                                 if kwargument.arg == 'num_qubits' and kwargument.value.value > 2:
                                     patchedGateIDs[target.id] = []

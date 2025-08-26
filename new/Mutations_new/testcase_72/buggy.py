@@ -1,3 +1,5 @@
+from qiskit import QuantumCircuit
+from qiskit.circuit import Gate
 qc = QuantumCircuit(3, 3)
 gt = Gate('gt', 2, [])
 qc.append(gt, [0, 1])

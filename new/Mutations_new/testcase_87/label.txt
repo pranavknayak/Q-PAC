@@ -1,1 +1,3 @@
 IncorrectRegisters
+IncorrectMeasurement
+IncorrectInit
