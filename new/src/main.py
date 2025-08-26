@@ -52,6 +52,7 @@ def remove_comments(code):
 
 def main():
     amt=0
+    crt=0
     parser = argparse.ArgumentParser(description="Process test case directories for bug/fix detection and evaluate metrics.")
     parser.add_argument(
         "--test-base-dir", 
@@ -108,6 +109,8 @@ def main():
             true_label.extend(line.rstrip("\n") for line in lf)
         
         # true_label.append(true_label_subarray)
+        if "IncorrectMeasurement" not in true_label and 'IncorrectInit' not in true_label:
+            continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])
         fixed_path = os.path.join(dirpath, fix_files[0])
@@ -165,6 +168,7 @@ def main():
             accuracy_array.append(accuracy)
             precision_array.append(precision)
             recall_array.append(recall)
+            crt+=1
 
         except Exception:
             print(f"ERROR AT {dirpath}")
@@ -178,6 +182,7 @@ def main():
         print("Average Recall = ", np.mean(recall_array))
         print("Average Precision = ", np.mean(precision_array))
         print(amt)
+        print(crt)
 
     # Compute and print metrics
     # if y_true:
