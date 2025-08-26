@@ -114,8 +114,9 @@ def main():
             true_label.extend(line.rstrip("\n") for line in lf)
         
         # true_label.append(true_label_subarray)
-        if "IncorrectMeasurement" not in true_label and 'ExcessiveMeasurements' not in true_label:
-            continue
+
+        # if "IncorrectHadamard" not in true_label:
+        #     continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])
         fixed_path = os.path.join(dirpath, fix_files[0])
@@ -149,6 +150,9 @@ def main():
 
             y_true.append(true_label)
             y_pred.append(pred_label) 
+
+            # if "IncorrectHadamard" in pred_label:
+            #     print("BYE\n\n\n")
 
             true_bin = [encode_labels(true_label, label_to_idx)]
             pred_bin = [encode_labels(pred_label, label_to_idx)]

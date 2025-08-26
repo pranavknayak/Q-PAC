@@ -143,8 +143,14 @@ class IncorrectMeasurement():
         """ Deduce whether the exact same measure functions are being used in both codes."""
         buggyKeys, patchedKeys = list(buggyMeasures.keys()), list(patchedMeasures.keys())
 
+        print("IHIHIHIHI")
+        print(buggyKeys)
+        print(patchedKeys)
+
         for i in range(len(buggyKeys)):
             if buggyMeasures[buggyKeys[i]] != patchedMeasures[patchedKeys[i]]:
+                print("bugg: ", buggyMeasures[buggyKeys[i]])
+                print("pat: ", patchedMeasures[patchedKeys[i]])
                 return True
 
         for line in range(len(buggyList)):

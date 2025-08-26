@@ -154,9 +154,11 @@ class IncorrectHadamard():
         #         patchedID[circ_id][qubit_id] += 1
         
         # if not buggyID:
-        buggyID = defaultdict(lambda: defaultdict(int))
+        # buggyID = defaultdict(lambda: defaultdict(int))
+        buggyID = {}
         # if not patchedID:
-        patchedID = defaultdict(lambda: defaultdict(int))
+        patchedID = {}
+        # patchedID = defaultdict(lambda: defaultdict(int))
 
         for line in buggyList:
             qbit_result = re.search(qubitRegex, line)
@@ -197,8 +199,11 @@ class IncorrectHadamard():
             if circ_result is None:
                 continue
             circ_id = circ_result.group()[:-2].strip()
-            # if circ_id not in buggyID:
-            #     buggyID[circ_id] = [0]*qubits
+            if circ_id not in buggyID:
+                buggyID[circ_id] = {}
+                for i in range(qubits):
+                    buggyID[circ_id][i] = 0
+
 
             if full_reg:
                 for i in range(len(buggyID[circ_id].keys())):
@@ -247,8 +252,14 @@ class IncorrectHadamard():
             if circ_result is None:
                 continue
             circ_id = circ_result.group()[:-2].strip()
-            # if circ_id not in patchedID:
-            #     patchedID[circ_id] = [0]*qubits
+
+
+            if circ_id not in patchedID:
+                patchedID[circ_id] = {}
+                for i in range(qubits):
+                    patchedID[circ_id][i] = 0
+
+
             if full_reg:
                 for i in range(len(patchedID[circ_id].keys())):
                     patchedID[circ_id][i] += 1
@@ -261,7 +272,7 @@ class IncorrectHadamard():
         for circ in buggyID:
             if circ in patchedID:
                 for i in range(min(len(buggyID[circ].keys()), len(patchedID[circ].keys()))):
-                    if buggyID[circ][i] % 2 != 0 and patchedID[circ][i] % 2 == 0:
+                    if (buggyID[circ][i] + patchedID[circ][i]) % 2 != 0:
                         return True
         return False
 

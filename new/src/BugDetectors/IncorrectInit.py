@@ -168,7 +168,11 @@ class IncorrectInit():
 
         """ Deduces if the arguments are amongst the possible arguments for an inbuilt
             gate operation in Qiskit, in both codes.
+        
         """
+
+        print("buggyList: ", buggyList)
+        print("pacthedlist: ", patchedList)
         for line in buggyList:
             temporaryStatus = re.search(regex1, line)
             if temporaryStatus is not None:
@@ -176,7 +180,9 @@ class IncorrectInit():
                 if gate in availableInbuiltGates:
                     args = line.split(gate)[1]
                     if gate not in buggyGate:
-                        buggyGate[gate] = self._returnArgs(args)
+                        buggyGate[gate] = np.array([self._returnArgs(args)])
+                    else:
+                        buggyGate[gate] = np.append(buggyGate[gate], self._returnArgs(args))
 
         for line in patchedList:
             temporaryStatus = re.search(regex1, line)
@@ -184,8 +190,14 @@ class IncorrectInit():
                 gate = line.split(".")[1].split("(")[0]
                 if gate in availableInbuiltGates:
                     args = line.split(gate)[1]
+                    # if gate not in patchedGate:
+                    #     patchedGate[gate] = self._returnArgs(args)
+                    #     print("Gate: ", gate, "patched: ", patchedGate[gate])
                     if gate not in patchedGate:
-                        patchedGate[gate] = self._returnArgs(args)
+                        patchedGate[gate] = np.array([self._returnArgs(args)])
+                    # print("Gate: ", gate, "Buggy: ", buggyGate[gate])
+                    else:
+                        patchedGate[gate] = np.append(patchedGate[gate], self._returnArgs(args))
 
         """ Checks if the arguments are amongst the possible arguments for a QuantumCircuit
             object in both codes.
@@ -209,22 +221,56 @@ class IncorrectInit():
             patchedQuantum.values()
         )
 
+        print("OK")
+        print(buggyGate)
+        print(patchedGate)
 
-        for i in range(len(buggyQuantumValue)):
-            if buggyQuantumValue[i].shape != patchedQuantumValue[i].shape:
+        print(buggyQuantum)
+        print(patchedQuantum)
+
+
+        # for i in range(len(buggyQuantumValue)):
+        #     if buggyQuantumValue[i].shape != patchedQuantumValue[i].shape:
+        #         return True
+        #     else:
+        #         if np.array_equal(buggyQuantumValue[i], patchedQuantumValue[i]) == False:
+        #             return True
+
+        for quantum in set(buggyQuantum.keys()) | set(patchedQuantum.keys()):
+            print("Quantum: ", quantum)
+            if quantum not in buggyQuantum:
+                print("AKDSJASHDASDJ")
+                return True
+            
+            if quantum not in patchedQuantum:
+                return True
+
+            if buggyQuantum[quantum].shape != patchedQuantum[quantum].shape:
                 return True
             else:
-                if np.array_equal(buggyQuantumValue[i], patchedQuantumValue[i]) == 0:
+                if np.array_equal(buggyQuantum[quantum], patchedQuantum[quantum]) == False:
+
                     return True
-        print(list(enumerate(buggyGateValue)))
-        print(list(enumerate(patchedGateValue)))
-        for i in range(len(buggyGateValue)):
-            if buggyGateValue[i].shape != patchedGateValue[i].shape:
-                print(i, buggyGateValue[i], buggyGateValue[i].shape, patchedGateValue[i], patchedGateValue[i].shape)
+
+        for gate in set(buggyGate.keys()) | set(patchedGate.keys()):
+            if gate not in buggyGate:
+                return True
+            
+            if gate not in patchedGate:
+                return True
+
+            if buggyGate[gate].shape != patchedGate[gate].shape:
                 return True
             else:
-                if np.array_equal(buggyGateValue[i], patchedGateValue[i]) == 0:
+                if np.array_equal(buggyGate[gate], patchedGate[gate]) == False:
                     return True
+        # for i in range(len(buggyGateValue)):
+        #     if buggyGateValue[i].shape != patchedGateValue[i].shape:
+        #         print(i, buggyGateValue[i], buggyGateValue[i].shape, patchedGateValue[i], patchedGateValue[i].shape)
+        #         return True
+        #     else:
+        #         if np.array_equal(buggyGateValue[i], patchedGateValue[i]) == False:
+        #             return True
 
         return False
 

@@ -125,7 +125,9 @@ class IncorrectStandardGate():
                     patchedGate.append(gate)
 
         """ Checks if the number of gates used in both codes are the same."""
-        if len(buggyGate) != len(patchedGate):
+        print("buggygate: ", buggyGate)
+        print("pactche gate: ", patchedGate)
+        if set(buggyGate) != set(patchedGate):
             return True
 
         """ Checks if any of the gates used are differenet, line by line in both the codes."""
