@@ -150,7 +150,8 @@ class IncorrectMeasurement():
         for line in range(len(buggyList)):
             tempStatus = re.search(regexPattern, buggyList[line])
             # Ensure the commented part is not considered
-            code_part = buggyList[line].split('#', 1)[0].strip()
+            # code_part = buggyList[line].split('#', 1)[0].strip()
+            code_part = buggyList
             if tempStatus is not None:
                 # buggyLine[buggyList[line].split("measure")[1]] = line
                 if "measure_inactive" in buggyList[line]:
@@ -205,11 +206,9 @@ class IncorrectMeasurement():
         """ Optional: can be used to print the exact line numbers of the patch."""
         # print(buggy, patched, sep = "\n***\n")
         # print(buggyLineNum, patchedLineNum)
-
         for num in range(len(buggyLineNum)):
             if buggyLineNum[num] != patchedLineNum[num]:
                 return True
-
         return False
 
     def _repeatedMeasurementError(self, codeSample, astSample):
