@@ -1,4 +1,5 @@
 # buggy version
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 q = QuantumRegister(2)
 c = ClassicalRegister(2) 
 grover_circuit = QuantumCircuit(q, c)

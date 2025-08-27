@@ -1,3 +1,4 @@
+from qiskit import QuantumCircuit
 q = QuantumCircuit(3, 3)
 q.h(0)
 q.x(range(3))
