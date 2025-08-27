@@ -1,5 +1,5 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-circuit = QuantumCircuit(3, 2)
+circuit = QuantumCircuit(3, 3)
 circuit.x(0)
 circuit.cx(0, 1)
 circuit.cx(1, 2)
