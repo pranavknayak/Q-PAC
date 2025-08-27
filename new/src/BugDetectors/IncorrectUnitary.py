@@ -51,7 +51,7 @@ class IncorrectUnitary():
         # except Exception as e:
         #     print(f"Error executing code: {e}")
 
-        print(code, safeGlobals, variables, sep="*********\n")
+        # print(code, safeGlobals, variables, sep="*********\n")
         tree = ast.parse(code, mode='exec')        
         compiled = compile(tree, filename="<sandbox>", mode="exec")
         status = exec(code, safeGlobals, variables)
