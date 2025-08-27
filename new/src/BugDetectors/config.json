@@ -3,6 +3,12 @@
         "RootDetector": {
             "Unitary": {}
         },
+        "Initialization": {
+            
+        },
+        "Measurement": {
+
+        },
         "Unitary": {
             "IncorrectUnitary": {}
         },

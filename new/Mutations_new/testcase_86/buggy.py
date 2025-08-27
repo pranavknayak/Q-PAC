@@ -1,3 +1,4 @@
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 qreg = QuantumRegister(3)
 creg = ClassicalRegister(2)
 circuit = QuantumCircuit(qreg, creg)

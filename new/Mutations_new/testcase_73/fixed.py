@@ -1,3 +1,5 @@
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import Gate
 qc = QuantumCircuit(4, 4)
 sub_circuit = QuantumCircuit(3, name='sub_circuit')
 sub_circuit2 = QuantumCircuit(3, name='sub_circuit2')

@@ -1,5 +1,5 @@
 import numpy as np
-from qiskit.providers.aer.noise import NoiseModel, amplitude_damping_error
+from qiskit_aer.noise import NoiseModel, amplitude_damping_error
 
 # Incorrect: Incomplete Kraus operators for amplitude damping
 kraus_ops = [

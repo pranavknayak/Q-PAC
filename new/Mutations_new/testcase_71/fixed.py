@@ -1,3 +1,4 @@
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 qc = QuantumCircuit(3, 3)
 sub_circuit = QuantumCircuit(3, name='sub_circuit')
 # Intermediate logic
