@@ -3,6 +3,7 @@ import ast
 import builtins
 #import qiskit.exceptions
 from qiskit.exceptions import QiskitError
+from qiskit_aer.noise.noiseerror import NoiseError
 
 class IncorrectUnitary():
 
@@ -116,7 +117,7 @@ class IncorrectUnitary():
                                 nonUnitaryArrays.append(varName)
         return nonUnitaryArrays
 
-    def _snippet_raises_amplitude_error(self, code: str) -> bool:
+    def _snippet_raises_amplitude_or_CPTP_error(self, code: str) -> bool:
         """
         Execute the given code snippet and return True if it raises exactly
         the QiskitError:
@@ -132,20 +133,21 @@ class IncorrectUnitary():
         try:
             exec(code, globals_dict, locals_dict)
             return False
-        except QiskitError as e:
+        except (QiskitError, NoiseError) as e:
             # Check that the message matches the amplitude‐norm error
             msg = str(e)
             print(msg)
-            if msg.startswith("'Sum of amplitudes-squared is not 1,"):
+            if msg.startswith("'Sum of amplitudes-squared is not 1,") or 'not CPTP' in msg:
                 return True
             return False
 
     def _detectIncorrectUnitary(self, codeDiff, astSample):
         bugTypeMessage = "Non-unitary matrix(ces) (which is/are supposed to be unitary) found."
         status = False
-        if (not self._snippet_raises_amplitude_error(codeDiff[1])) and self._snippet_raises_amplitude_error(codeDiff[0]):
+        if (not self._snippet_raises_amplitude_or_CPTP_error(codeDiff[1])) and self._snippet_raises_amplitude_or_CPTP_error(codeDiff[0]):
             status = True
         if status is False:
+            print('motherficdashgidaih')
             non_unitary_gate_array = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
             if non_unitary_gate_array != []:
                 status = True
