@@ -1,4 +1,4 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import transpile, QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate
 
 qr = QuantumRegister(5)
