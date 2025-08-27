@@ -136,7 +136,7 @@ class IncorrectUnitary():
             # Check that the message matches the amplitude‐norm error
             msg = str(e)
             print(msg)
-            if msg.startswith("Sum of amplitudes-squared is not 1, but"):
+            if msg.startswith("'Sum of amplitudes-squared is not 1,"):
                 return True
             return False
 
