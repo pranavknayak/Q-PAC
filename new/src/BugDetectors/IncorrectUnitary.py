@@ -146,7 +146,9 @@ class IncorrectUnitary():
         if (not self._snippet_raises_amplitude_error(codeDiff[1])) and self._snippet_raises_amplitude_error(codeDiff[0]):
             status = True
         if status is False:
-            status = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
+            non_unitary_gate_array = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
+            if non_unitary_gate_array != []:
+                status = True
             if status is False:
                 bugTypeMessage = None
         return status, bugTypeMessage
