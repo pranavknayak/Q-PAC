@@ -115,7 +115,7 @@ def main():
         
         # true_label.append(true_label_subarray)
 
-        # if "IncorrectHadamard" not in true_label:
+        # if "not a bug" not in true_label:
         #     continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])

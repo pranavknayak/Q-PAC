@@ -4,6 +4,7 @@ import builtins
 #import qiskit.exceptions
 from qiskit.exceptions import QiskitError
 from qiskit_aer.noise.noiseerror import NoiseError
+from safeExec import safeExec
 
 class IncorrectUnitary():
 
@@ -55,7 +56,8 @@ class IncorrectUnitary():
         # print(code, safeGlobals, variables, sep="*********\n")
         tree = ast.parse(code, mode='exec')        
         compiled = compile(tree, filename="<sandbox>", mode="exec")
-        status = exec(code, safeGlobals, variables)
+        # status = exec(code, safeGlobals, variables)
+        status = safeExec(code, safeGlobals, variables)
         print("status:", status)
         print("variables:", variables)
         print("safeGlobals:", safeGlobals)
@@ -131,7 +133,8 @@ class IncorrectUnitary():
         locals_dict = {}
 
         try:
-            exec(code, globals_dict, locals_dict)
+            # exec(code, globals_dict, locals_dict)
+            safeExec(code, globals_dict, locals_dict)
             return False
         except (QiskitError, NoiseError) as e:
             # Check that the message matches the amplitude‐norm error

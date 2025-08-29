@@ -19,6 +19,7 @@ class IncorrectStandardGate():
             "x",
             "y",
             "z",
+            "swap"
         ]
         regexPattern = r".+\..*"
 
@@ -104,8 +105,11 @@ class IncorrectStandardGate():
 
         """ Considering the cases when there is a one to one mapping of the QuantumCircuits
         in buggy code to the QuantumCircuits in patched code. """
-        if len(buggyID) != len(patchedID):
-            return True
+        # if len(buggyID) != len(patchedID):
+        #     print("HIIHIHIHIH\n")
+        #     print(buggyID)
+        #     print(patchedID)
+        #     return True
 
         """ Checks if the gate is amongst the available gates in Qiskit."""
         for line in buggyList:

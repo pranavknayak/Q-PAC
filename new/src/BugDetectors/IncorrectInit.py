@@ -240,7 +240,6 @@ class IncorrectInit():
                 return True
             else:
                 if np.array_equal(buggyQuantum[quantum], patchedQuantum[quantum]) == False:
-
                     return True
 
         for gate in set(buggyGate.keys()) | set(patchedGate.keys()):
