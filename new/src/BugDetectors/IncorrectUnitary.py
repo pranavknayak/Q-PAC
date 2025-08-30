@@ -58,9 +58,9 @@ class IncorrectUnitary():
         compiled = compile(tree, filename="<sandbox>", mode="exec")
         # status = exec(code, safeGlobals, variables)
         status = safeExec(code, safeGlobals, variables)
-        print("status:", status)
-        print("variables:", variables)
-        print("safeGlobals:", safeGlobals)
+        # print("status:", status)
+        # print("variables:", variables)
+        # print("safeGlobals:", safeGlobals)
         # Recursively extract arrays from variables
         for varName, value in variables.items():
             foundArrays = self._extractArraysFromObject(value, varName)
@@ -134,7 +134,7 @@ class IncorrectUnitary():
 
         try:
             # exec(code, globals_dict, locals_dict)
-            safeExec(code, globals_dict, locals_dict)
+            exec(code, globals_dict, locals_dict)
             return False
         except (QiskitError, NoiseError) as e:
             # Check that the message matches the amplitude‐norm error
@@ -150,7 +150,6 @@ class IncorrectUnitary():
         if (not self._snippet_raises_amplitude_or_CPTP_error(codeDiff[1])) and self._snippet_raises_amplitude_or_CPTP_error(codeDiff[0]):
             status = True
         if status is False:
-            print('motherficdashgidaih')
             non_unitary_gate_array = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
             if non_unitary_gate_array != []:
                 status = True
