@@ -116,8 +116,8 @@ def main():
         with open(label_file, 'r') as lf:
             true_label.extend(line.rstrip("\n") for line in lf)
         
-        # if "ExcessiveMeasurements" not in true_label:
-            # continue
+        # if "IncorrectUnitary" not in true_label:
+        #     continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])
         fixed_path = os.path.join(dirpath, fix_files[0])
@@ -202,42 +202,6 @@ def main():
         print(f"Average Accuracy:  {np.mean(accuracy_array):.4f}")
         print(f"Average Recall:    {np.mean(recall_array):.4f}")
         print(f"Average Precision: {np.mean(precision_array):.4f}")
-        
-        print("\n" + "="*80)
-        print("INCORRECT MEASUREMENT ANALYSIS")
-        print("="*80)
-        print(f"True Positives:  {len(incorrect_measurement_stats['true_positive'])}")
-        print(f"False Positives: {len(incorrect_measurement_stats['false_positive'])}")
-        print(f"False Negatives: {len(incorrect_measurement_stats['false_negative'])}")
-        
-        if incorrect_measurement_stats['false_positive']:
-            print("\nFalse Positives (Incorrectly predicted IncorrectMeasurement):")
-            for path in incorrect_measurement_stats['false_positive']:
-                print(f"  - {path}")
-        
-        if incorrect_measurement_stats['false_negative']:
-            print("\nFalse Negatives (Missed IncorrectMeasurement):")
-            for path in incorrect_measurement_stats['false_negative']:
-                print(f"  - {path}")
-        
-        print("\n" + "="*80)
-        print("EXCESSIVE MEASUREMENTS ANALYSIS")
-        print("="*80)
-        print(f"True Positives:  {len(excessive_measurements_stats['true_positive'])}")
-        print(f"False Positives: {len(excessive_measurements_stats['false_positive'])}")
-        print(f"False Negatives: {len(excessive_measurements_stats['false_negative'])}")
-        
-        if excessive_measurements_stats['false_positive']:
-            print("\nFalse Positives (Incorrectly predicted ExcessiveMeasurements):")
-            for path in excessive_measurements_stats['false_positive']:
-                print(f"  - {path}")
-        
-        if excessive_measurements_stats['false_negative']:
-            print("\nFalse Negatives (Missed ExcessiveMeasurements):")
-            for path in excessive_measurements_stats['false_negative']:
-                print(f"  - {path}")
-        
-        print("="*80)
 
 if __name__ == "__main__":
     main()
