@@ -68,38 +68,42 @@ def main():
     args = parser.parse_args()
     test_base_dir = args.test_base_dir
 
-    
-
     # Prepare lists for true and predicted labels
     y_true = []
     y_pred = []
 
-    # true_label = []
     accuracy_array = []
     precision_array = []
     recall_array = []
 
     # Assigning values to each bug type
     all_labels = [
-        # 'Initialization',
         'IncorrectInit',
         'IncorrectRegisters',
-        # 'Measurement',
         'IncorrectMeasurement',
         'ExcessiveMeasurements',
         'IncorrectNumberOfSamples',
         'IncorrectDecisionToMeasure',
-        # 'Unitary',
         'IncorrectStandardGate',
         'IncorrectOpaqueGate',
         'IncorrectHadamard',
         'IncorrectUnitary',
-        # 'RootDetector',
         'not a bug',
-        # 'Circuit-related',
-        # 'Operator-related'   
     ]
     label_to_idx = {label: i for i, label in enumerate(all_labels)}
+    
+    # Track IncorrectMeasurement and ExcessiveMeasurements predictions
+    incorrect_measurement_stats = {
+        'true_positive': [],  # Correctly predicted IncorrectMeasurement
+        'false_positive': [],  # Incorrectly predicted IncorrectMeasurement
+        'false_negative': [],  # Missed IncorrectMeasurement
+    }
+    
+    excessive_measurements_stats = {
+        'true_positive': [],  # Correctly predicted ExcessiveMeasurements
+        'false_positive': [],  # Incorrectly predicted ExcessiveMeasurements
+        'false_negative': [],  # Missed ExcessiveMeasurements
+    }
 
     # Iterate through all leaf dirs with both bug and fix files
     for dirpath, bug_files, fix_files in find_leaf_dirs_with_bug_fix(test_base_dir):
@@ -110,13 +114,10 @@ def main():
             print(f"Skipping {dirpath}: no label.txt")
             continue
         with open(label_file, 'r') as lf:
-            # true_label_subarray.extend(line.rstrip("\n") for line in lf)
             true_label.extend(line.rstrip("\n") for line in lf)
         
-        # true_label.append(true_label_subarray)
-
-        # if "not a bug" not in true_label:
-        #     continue
+        # if "ExcessiveMeasurements" not in true_label:
+            # continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])
         fixed_path = os.path.join(dirpath, fix_files[0])
@@ -135,29 +136,37 @@ def main():
             bug_investigator.build_class_hierarchy()
 
             bugErrorMessage = bug_investigator.detect_pattern(test)
-            # print(bugErrorMessage)
             pred_label = infer_label(bugErrorMessage)
-            if 'IncorrectMeasurement' in pred_label:
-                amt+=1
+
+            # Track IncorrectMeasurement predictions
+            if 'IncorrectMeasurement' in pred_label and 'IncorrectMeasurement' in true_label:
+                incorrect_measurement_stats['true_positive'].append(dirpath)
+            elif 'IncorrectMeasurement' in pred_label and 'IncorrectMeasurement' not in true_label:
+                incorrect_measurement_stats['false_positive'].append(dirpath)
+            elif 'IncorrectMeasurement' not in pred_label and 'IncorrectMeasurement' in true_label:
+                incorrect_measurement_stats['false_negative'].append(dirpath)
+            
+            # Track ExcessiveMeasurements predictions
+            if 'ExcessiveMeasurements' in pred_label and 'ExcessiveMeasurements' in true_label:
+                excessive_measurements_stats['true_positive'].append(dirpath)
+            elif 'ExcessiveMeasurements' in pred_label and 'ExcessiveMeasurements' not in true_label:
+                excessive_measurements_stats['false_positive'].append(dirpath)
+            elif 'ExcessiveMeasurements' not in pred_label and 'ExcessiveMeasurements' in true_label:
+                excessive_measurements_stats['false_negative'].append(dirpath)
 
             mlb = MultiLabelBinarizer()
-            mlb.fit(true_label + pred_label)  # get all possible labels
+            mlb.fit(true_label + pred_label)
 
             print(f"Dir: {dirpath}")
             print(f"  True Label: {true_label}")
             print(f"  Pred Label: {pred_label}")
-            print('\n\n\n\n')
+            print('\n\n')
 
             y_true.append(true_label)
             y_pred.append(pred_label) 
 
-            # if "IncorrectHadamard" in pred_label:
-            #     print("BYE\n\n\n")
-
             true_bin = [encode_labels(true_label, label_to_idx)]
             pred_bin = [encode_labels(pred_label, label_to_idx)]
-
-            # accuracy = accuracy_score(true_bin, pred_bin)
 
             num = 0
             den = 0
@@ -187,23 +196,48 @@ def main():
         accuracy_array = np.array(accuracy_array)
         recall_array = np.array(recall_array)
         precision_array = np.array(precision_array)
-        print("Average Accuracy = ", np.mean(accuracy_array))
-        print("Average Recall = ", np.mean(recall_array))
-        print("Average Precision = ", np.mean(precision_array))
-        print(amt)
-        print(crt)
-
-    # Compute and print metrics
-    # if y_true:
-    #     acc = accuracy_score(y_true, y_pred)
-    #     prec = precision_score(y_true, y_pred, average='macro', zero_division=0)
-    #     rec = recall_score(y_true, y_pred, average='macro', zero_division=0)
-    #     print("\nEvaluation Metrics:")
-    #     print(f"  Accuracy: {acc:.4f}")
-    #     print(f"  Precision: {prec:.4f}")
-    #     print(f"  Recall: {rec:.4f}")
-    # else:
-    #     print("No labeled testcases processed.")
+        print("\n" + "="*80)
+        print("OVERALL METRICS")
+        print("="*80)
+        print(f"Average Accuracy:  {np.mean(accuracy_array):.4f}")
+        print(f"Average Recall:    {np.mean(recall_array):.4f}")
+        print(f"Average Precision: {np.mean(precision_array):.4f}")
+        
+        print("\n" + "="*80)
+        print("INCORRECT MEASUREMENT ANALYSIS")
+        print("="*80)
+        print(f"True Positives:  {len(incorrect_measurement_stats['true_positive'])}")
+        print(f"False Positives: {len(incorrect_measurement_stats['false_positive'])}")
+        print(f"False Negatives: {len(incorrect_measurement_stats['false_negative'])}")
+        
+        if incorrect_measurement_stats['false_positive']:
+            print("\nFalse Positives (Incorrectly predicted IncorrectMeasurement):")
+            for path in incorrect_measurement_stats['false_positive']:
+                print(f"  - {path}")
+        
+        if incorrect_measurement_stats['false_negative']:
+            print("\nFalse Negatives (Missed IncorrectMeasurement):")
+            for path in incorrect_measurement_stats['false_negative']:
+                print(f"  - {path}")
+        
+        print("\n" + "="*80)
+        print("EXCESSIVE MEASUREMENTS ANALYSIS")
+        print("="*80)
+        print(f"True Positives:  {len(excessive_measurements_stats['true_positive'])}")
+        print(f"False Positives: {len(excessive_measurements_stats['false_positive'])}")
+        print(f"False Negatives: {len(excessive_measurements_stats['false_negative'])}")
+        
+        if excessive_measurements_stats['false_positive']:
+            print("\nFalse Positives (Incorrectly predicted ExcessiveMeasurements):")
+            for path in excessive_measurements_stats['false_positive']:
+                print(f"  - {path}")
+        
+        if excessive_measurements_stats['false_negative']:
+            print("\nFalse Negatives (Missed ExcessiveMeasurements):")
+            for path in excessive_measurements_stats['false_negative']:
+                print(f"  - {path}")
+        
+        print("="*80)
 
 if __name__ == "__main__":
     main()

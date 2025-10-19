@@ -1,312 +1,216 @@
 import ast
 import re
-import numpy as np
-from safeEval import safeEval
 
 class ExcessiveMeasurements():
-    def _extractIters(self, node: ast.For):
-        target = ast.Name(node.target)
-        target_id = target.id
-        if isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name) and node.iter.func.id == 'range':
-            # Cannot handle range declarations with dynamically calculated endpoints
-            if len(node.iter.args) == 1:
-                if isinstance(node.iter.args[0], ast.Constant):
-                    iterations = node.iter.args[0].value
-                    return iterations
-            else:
-                if isinstance(node.iter.args[0], ast.Constant) and isinstance(node.iter.args[1], ast.Constant):
-                    iterations = node.iter.args[1].value - node.iter.args[0].value
-                    return iterations
-            return None
-        elif isinstance(node.iter, ast.List):
-            iterations = len(node.iter.elts)
-            return iterations
-
-
-    def _returnArgs(self, args):
-        args = "".join(args.split(" "))
-        square = []
-        paren = []
-        value = ""
-        parenCheck = 0
-        squareCheck = 0
-
-        for char in args:
-            if char == "(":
-                parenCheck = 1
-            elif char == "[":
-                squareCheck = 1
-            elif char == "]":
-                squareCheck = 0
-                square.append(value)
-                paren.append(square)
-                square = []
-                value = ""
-            elif char == ")":
-                parenCheck = 0
-                if len(value) > 0:
-                    paren.append(value)
-            elif char == ",":
-                if parenCheck and value != "":
-                    if squareCheck:
-                        square.append(value)
-                    else:
-                        paren.append(value)
-            else:
-                value = ""
-                value += char
-
-        for args in range(len(paren)):
-            if isinstance(paren[args], list):
-                for index in range(len(paren[args])):
-                    paren[args][index] = safeEval(paren[args][index], {})
-            else:
-                paren[args] = safeEval(paren[args], {})
-
-        return np.array(paren)
-
-
-    def _measurementRegisterError(self, codeSample, astSample):
-        # TODO: Deprecate, replace with more robust AST traversal
-        availableMeasurementFunctions = ["measure", "measure_all", "measure_inactive"]
-        regexPattern = ".+\.measure.*"
-        buggy, patched = codeSample[0], codeSample[1]
-        buggyMeasures, patchedMeasures = {}, {}
-        buggyList = list(filter(("").__ne__, buggy.split("\n")))
-        patchedList = list(filter(("").__ne__, patched.split("\n")))
-        buggyLine, patchedLine = {}, {}
-        buggyArgs, patchedArgs = [], []
-        # astBuggy, astPatched = ast.walk(ast.parse(buggy)), ast.walk(ast.parse(patched))
-        astBuggy, astPatched = ast.walk(astSample[0]), ast.walk(astSample[1])
-
-        """ Deduce if there is a Quantum Circuit object associated with the patch."""
-        for node in astBuggy:
-            if isinstance(node, ast.Assign):
-                for id in getattr(node, "targets"):
-                    if (
-                        id.id not in buggyMeasures
-                        and isinstance(node.value, ast.Call)
-                        and isinstance(node.value.func, ast.Name)
-                        and getattr(node, "value").func.id == "QuantumCircuit"
-                    ):
-                        buggyMeasures[id.id] = []
-
-            """ Using the AST to deduce if there is measure function amongst the aforementioned types."""
-            if isinstance(node, ast.Expr):
-                if isinstance(node.value.func, ast.Attribute) and getattr(node, "value").func.attr in availableMeasurementFunctions:
-                    if getattr(node, "value").func.value.id not in buggyMeasures:
-                        buggyMeasures[getattr(node, "value").func.value.id] = []
-                        buggyMeasures[getattr(node, "value").func.value.id].append(
-                            getattr(node, "value").func.attr
-                        )
-                    else:
-                        buggyMeasures[getattr(node, "value").func.value.id].append(
-                            getattr(node, "value").func.attr
-                        )
-
-        """ Same checks as above but in the patched code instead of the buggy code."""
-        for node in astPatched:
-            if isinstance(node, ast.Assign):
-                for id in getattr(node, "targets"):
-                    if (
-                        id.id not in patchedMeasures
-                        and isinstance(node.value, ast.Call)
-                        and isinstance(node.value.func, ast.Name)
-                        and getattr(node, "value").func.id == "QuantumCircuit"
-                    ):
-                        patchedMeasures[id.id] = []
-
-            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                if isinstance(node.value.func, ast.Attribute) and getattr(node, "value").func.attr in availableMeasurementFunctions:
-                    if getattr(node, "value").func.value.id not in patchedMeasures:
-                        patchedMeasures[getattr(node, "value").func.value.id] = []
-                        patchedMeasures[getattr(node, "value").func.value.id].append(
-                            getattr(node, "value").func.attr
-                        )
-                    else:
-                        patchedMeasures[getattr(node, "value").func.value.id].append(
-                            getattr(node, "value").func.attr
-                        )
-
-        """ Considering the cases when there is a one to one mapping of the QuantumCircuits
-        in buggy code to the QuantumCircuits in patched code. """
-
-        if len(buggyMeasures) != len(patchedMeasures):
-            return True
-
-        """ Assuming the existence of a singleton Quantum Circuit object,
-            deduces if the number of instances of a measurement function
-            is equal in both codes."""
-        if len(buggyMeasures) != len(patchedMeasures):
-            return True
-
-        """ Deduce whether the exact same measure functions are being used in both codes."""
-        buggyKeys, patchedKeys = list(buggyMeasures.keys()), list(patchedMeasures.keys())
-
-        for i in range(len(buggyKeys)):
-            if buggyMeasures[buggyKeys[i]] != patchedMeasures[patchedKeys[i]]:
-                return True
-
-        for line in range(len(buggyList)):
-            tempStatus = re.search(regexPattern, buggyList[line])
-            # Ensure the commented part is not considered
-            code_part = buggyList[line].split('#', 1)[0].strip()
-            if tempStatus is not None:
-                # buggyLine[buggyList[line].split("measure")[1]] = line
-                if "measure_inactive" in buggyList[line]:
-                    parts = code_part[line].split("measure_inactive", 1)
-                    if len(parts) > 1:
-                        buggyLine[parts[1]] = line
-                elif "measure_all" in buggyList[line]:
-                    parts = code_part[line].split("measure_all", 1)
-                    if len(parts) > 1:
-                        buggyLine[parts[1]] = line
-                elif "measure" in buggyList[line]:
-                    parts = code_part[line].split("measure", 1)
-                    if len(parts) > 1:
-                        buggyLine[parts[1]] = line
-
-        for line in range(len(patchedList)):
-            tempStatus = re.search(regexPattern, patchedList[line])
-            if tempStatus is not None:
-                # patchedLine[patchedList[line].split("measure")[1]] = line
-                if "measure_inactive" in patchedList[line]:
-                    parts = patchedList[line].split("measure_inactive", 1)
-                    if len(parts) > 1:
-                        patchedLine[parts[1]] = line
-                elif "measure_all" in patchedList[line]:
-                    parts = patchedList[line].split("measure_all", 1)
-                    if len(parts) > 1:
-                        patchedLine[parts[1]] = line
-                elif "measure" in patchedList[line]:
-                    parts = patchedList[line].split("measure", 1)
-                    if len(parts) > 1:
-                        patchedLine[parts[1]] = line
-
-        for buggyKey in buggyLine.keys():
-            buggyArgs.append(self._returnArgs(buggyKey))
-
-        for patchedKey in patchedLine.keys():
-            patchedArgs.append(self._returnArgs(patchedKey))
-
-        if len(buggyArgs) != len(patchedArgs):
-            return True
-
-        for i in range(len(buggyArgs)):
-            if buggyArgs[i].shape != patchedArgs[i].shape:
-                return True
-            else:
-                if np.array_equal(buggyArgs[i], patchedArgs[i]) == 0:
-                    return True
-
-        buggyLineNum = list(buggyLine.values())
-        patchedLineNum = list(patchedLine.values())
-
-        """ Optional: can be used to print the exact line numbers of the patch."""
-        # print(buggy, patched, sep = "\n***\n")
-        # print(buggyLineNum, patchedLineNum)
-
-        for num in range(len(buggyLineNum)):
-            if buggyLineNum[num] != patchedLineNum[num]:
-                return True
-
-        return False
-
-    def _repeatedMeasurementError(self, codeSample, astSample):
-        availableMeasurementFunctions = ["measure", "measure_all", "measure_inactive"]
-        regexPattern = ".+\.measure.*"
-
-        buggy, patched = codeSample[0], codeSample[1]
-        buggyMeasures, patchedMeasures = {}, {}
-        astBuggy, astPatched = ast.walk(astSample[0]), ast.walk(astSample[1])
-
-        for node in astBuggy:
-            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
-                for target in node.targets:
-                    if (target.id not in buggyMeasures
-                            and isinstance(node.value.func, ast.Name)
-                            and node.value.func.id == 'QuantumCircuit'):
-                        buggyMeasures[target.id] = 0
-
-        for node in astPatched:
-            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
-                for target in node.targets:
-                    if (target.id not in patchedMeasures
-                            and isinstance(node.value.func, ast.Name)
-                            and node.value.func.id == 'QuantumCircuit'):
-                        patchedMeasures[target.id] = 0
-
-
-
-
-        astBuggy, astPatched = ast.walk(ast.parse(buggy)), ast.walk(ast.parse(patched))
-        buggyCircIDs, patchedCircIDs = buggyMeasures.keys(), patchedMeasures.keys()
-
-        for node in astBuggy:
-            if isinstance(node, ast.For):
-                iterations = self._extractIters(node)
-                if not iterations:
-                    continue
-                else:
-                    for subnode in node.body:
-                        if isinstance(subnode, ast.Expr) and isinstance(subnode.value, ast.Call):
-                            id = subnode.value.func.value.id
-                            func = subnode.value.func.attr
-                            if id in buggyMeasures.keys() and func in availableMeasurementFunctions:
-                                buggyMeasures[id] += iterations - 1
-            else:
-                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute):
-                    if isinstance(node.value.func.value, ast.Name):
-                        id = node.value.func.value.id
-                    func = node.value.func.attr
-                    if id in buggyMeasures.keys() and func in availableMeasurementFunctions:
-                        buggyMeasures[id] += 1
-
-
-        for node in astPatched:
-            if isinstance(node, ast.For):
-                iterations = self._extractIters(node)
-                if not iterations:
-                    continue
-                else:
-                    for subnode in node.body:
-                        if isinstance(subnode, ast.Expr) and isinstance(subnode.value, ast.Call):
-                            id = subnode.value.func.value.id
-                            func = subnode.value.func.attr
-                            if id in patchedMeasures.keys() and func in availableMeasurementFunctions:
-                                patchedMeasures[id] += iterations - 1
-            else:
-                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute):
-                    if isinstance(node.value.func.value, ast.Name):
-                        id = node.value.func.value.id
-                        func = node.value.func.attr
-                    if id in patchedMeasures.keys() and func in availableMeasurementFunctions:
-                        patchedMeasures[id] += 1
-
-        for id in buggyCircIDs:
-            if id in patchedCircIDs:
-                if buggyMeasures[id] > patchedMeasures[id]:
-                    return True
-
-        return False
-
-
-    def _detectIncorrectMeasurement(self, codeSample, astSample):
-        status = False
-        bugTypeMessage2 = "Excessive measurements performed"
-        try:
-            status = self._repeatedMeasurementError(codeSample, astSample)
-            print("repeatedMeasurement WORKS")
-        except:
-            status = False
-            # status2 = True
-            print("error in repeatedMeasurementError")
-            raise
-        bugTypeMessage = ''
-        if status:
-            bugTypeMessage += bugTypeMessage2 + '.'
-
-        return status, bugTypeMessage
+    def __init__(self):
+        pass
     
+    def _analyzeQubitMeasurements(self, code, ast_tree):
+        """
+        Analyze measurement operations on each qubit, accounting for loops.
+        Returns: {
+            circuit_id: {
+                qubit_idx: {
+                    'measurement_count': int,
+                    'measurement_lines': [line_numbers]
+                }
+            }
+        }
+        """
+        analysis = {}
+        circuit_qubits = {}
+        register_sizes = {}
+        
+        # First pass: find QuantumRegister definitions
+        for node in ast.walk(ast_tree):
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                if isinstance(node.value.func, ast.Name) and node.value.func.id == "QuantumRegister":
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            reg_name = target.id
+                            if node.value.args and isinstance(node.value.args[0], ast.Constant):
+                                register_sizes[reg_name] = node.value.args[0].value
+        
+        # Second pass: find QuantumCircuit definitions
+        for node in ast.walk(ast_tree):
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                if isinstance(node.value.func, ast.Name) and node.value.func.id == "QuantumCircuit":
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            circuit_id = target.id
+                            num_qubits = 0
+                            
+                            if node.value.args and isinstance(node.value.args[0], ast.Constant):
+                                num_qubits = node.value.args[0].value
+                            elif node.value.args and isinstance(node.value.args[0], ast.Name):
+                                reg_name = node.value.args[0].id
+                                num_qubits = register_sizes.get(reg_name, 0)
+                            
+                            if num_qubits > 0:
+                                circuit_qubits[circuit_id] = num_qubits
+                                analysis[circuit_id] = {}
+                                for q in range(num_qubits):
+                                    analysis[circuit_id][q] = {
+                                        'measurement_count': 0,
+                                        'measurement_lines': []
+                                    }
+        
+        # Third pass: analyze measurements with loop detection
+        self._analyzeMeasurementsWithLoops(ast_tree, circuit_qubits, analysis)
+        
+        return analysis
+    
+    def _analyzeMeasurementsWithLoops(self, ast_tree, circuit_qubits, analysis):
+        """Recursively analyze measurements, accounting for loops."""
+        self._walkNodeWithLoopContext(ast_tree, circuit_qubits, analysis, loop_multiplier=1)
+
+    def _walkNodeWithLoopContext(self, node, circuit_qubits, analysis, loop_multiplier=1):
+        """Walk AST nodes and track loop iterations."""
+        if isinstance(node, ast.For):
+            # Detect loop iterations
+            iter_count = 1
+            if isinstance(node.iter, ast.Call):
+                if isinstance(node.iter.func, ast.Name) and node.iter.func.id == 'range':
+                    # Extract range value
+                    if node.iter.args and isinstance(node.iter.args[0], ast.Constant):
+                        iter_count = node.iter.args[0].value
+            
+            print(f"DEBUG: Found for loop with {iter_count} iterations, current multiplier: {loop_multiplier}")
+            
+            # Process loop body with increased multiplier
+            for child in node.body:
+                self._walkNodeWithLoopContext(child, circuit_qubits, analysis, loop_multiplier * iter_count)
+            
+            # Don't continue walking this node's children since we already processed the body
+            return
+        
+        elif isinstance(node, ast.While):
+            # For while loops, we can't determine iterations statically
+            # Assume at least 1 iteration (conservative estimate)
+            for child in node.body:
+                self._walkNodeWithLoopContext(child, circuit_qubits, analysis, loop_multiplier)
+            return
+        
+        elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            # Check if it's a measurement call
+            if isinstance(node.value.func, ast.Attribute):
+                circuit_name = None
+                if isinstance(node.value.func.value, ast.Name):
+                    circuit_name = node.value.func.value.id
+                
+                if circuit_name in circuit_qubits:
+                    gate_name = node.value.func.attr
+                    
+                    if 'measure' in gate_name.lower():
+                        qubits = self._extractQubitsFromCall(node.value)
+                        
+                        print(f"DEBUG: Found measurement at line {node.lineno}, qubits: {qubits}, multiplier: {loop_multiplier}")
+                        
+                        if not qubits:
+                            qubits = list(range(circuit_qubits[circuit_name]))
+                        
+                        for qubit in qubits:
+                            if qubit in analysis[circuit_name]:
+                                analysis[circuit_name][qubit]['measurement_count'] += loop_multiplier
+                                if node.lineno not in analysis[circuit_name][qubit]['measurement_lines']:
+                                    analysis[circuit_name][qubit]['measurement_lines'].append(node.lineno)
+                                print(f"  DEBUG: Qubit {qubit} now has {analysis[circuit_name][qubit]['measurement_count']} measurements")
+        
+        # Recursively walk child nodes (but NOT for loops, we handled those above)
+        for child in ast.iter_child_nodes(node):
+            self._walkNodeWithLoopContext(child, circuit_qubits, analysis, loop_multiplier)
+
+    def _extractQubitsFromCall(self, call_node):
+        """Extract qubit indices from a gate/measurement call."""
+        qubits = []
+        
+        if call_node.args:
+            first_arg = call_node.args[0]
+            
+            if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, int):
+                qubits.append(first_arg.value)
+            elif isinstance(first_arg, ast.List):
+                for elt in first_arg.elts:
+                    if isinstance(elt, ast.Constant) and isinstance(elt.value, int):
+                        qubits.append(elt.value)
+            elif isinstance(first_arg, ast.Subscript):
+                if isinstance(first_arg.slice, ast.Constant):
+                    qubits.append(first_arg.slice.value)
+        
+        return qubits
+
+    def _detectExcessiveMeasurements(self, buggy_analysis, patched_analysis):
+        """Detect if any qubit is measured excessively in buggy code."""
+        excessive = []
+        
+        for circuit_id in buggy_analysis:
+            if circuit_id not in patched_analysis:
+                continue
+            
+            for qubit in buggy_analysis[circuit_id]:
+                if qubit not in patched_analysis[circuit_id]:
+                    continue
+                
+                buggy_count = buggy_analysis[circuit_id][qubit]['measurement_count']
+                patched_count = patched_analysis[circuit_id].get(qubit, {}).get('measurement_count', 0)
+                
+                if buggy_count > patched_count:
+                    buggy_lines = buggy_analysis[circuit_id][qubit]['measurement_lines']
+                    patched_lines = patched_analysis[circuit_id][qubit].get('measurement_lines', [])
+                    
+                    excessive.append({
+                        'circuit': circuit_id,
+                        'qubit': qubit,
+                        'buggy_count': buggy_count,
+                        'patched_count': patched_count,
+                        'buggy_lines': buggy_lines,
+                        'patched_lines': patched_lines
+                    })
+        
+        return excessive
+    
+    def _detectExcessiveMeasurement(self, codeSample, astSample):
+        result = {
+            'ExcessiveMeasurements': 'None'
+        }
+        
+        try:
+            print("\n=== ExcessiveMeasurements Analysis ===")
+            buggy, patched = codeSample[0], codeSample[1]
+            astBuggy, astPatched = astSample[0], astSample[1]
+            
+            buggy_analysis = self._analyzeQubitMeasurements(buggy, astBuggy)
+            patched_analysis = self._analyzeQubitMeasurements(patched, astPatched)
+            
+            print(f"Buggy analysis: {buggy_analysis}")
+            print(f"Patched analysis: {patched_analysis}")
+            
+            excessive = self._detectExcessiveMeasurements(buggy_analysis, patched_analysis)
+            
+            print(f"Excessive measurements found: {len(excessive)}")
+            print(f"Details: {excessive}")
+            
+            if excessive:
+                messages = []
+                for item in excessive:
+                    messages.append(
+                        f"Circuit '{item['circuit']}', qubit {item['qubit']}: "
+                        f"measured {item['buggy_count']} times at lines {item['buggy_lines']} "
+                        f"(expected {item['patched_count']} times at lines {item['patched_lines']})"
+                    )
+                result['ExcessiveMeasurements'] = '; '.join(messages)
+            
+            print(f"Final result: {result}")
+            print("=== End ExcessiveMeasurements Analysis ===\n")
+            
+        except Exception as e:
+            print(f"Error in detectExcessiveMeasurement: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        return result
+
     def assessBugType(self, codeSample, astSample):
-        return self._detectIncorrectMeasurement(codeSample, astSample)
+        result = self._detectExcessiveMeasurement(codeSample, astSample)
+        has_bug = result['ExcessiveMeasurements'] != 'None'
+        return has_bug, result
