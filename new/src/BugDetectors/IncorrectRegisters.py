@@ -184,6 +184,7 @@ class IncorrectRegisters():
         for circuit in buggyCircs:
             if circuit in patchedCircs:
                 if buggyCircs[circuit]['bits'] != buggyCircs[circuit]['qubits'] and patchedCircs[circuit]['bits'] == patchedCircs[circuit]['qubits']:
+                    print(f"\nREGISTER ERROR: Circuit '{circuit}' has {buggyCircs[circuit]['bits']} classical bits but {buggyCircs[circuit]['qubits']} qubits (should be equal)")
                     return True
         return False
 
@@ -192,7 +193,6 @@ class IncorrectRegisters():
         bugTypeMessage = "Unequal bits vs. qubits during QuantumCircuit initialization(s)."
         try:
             status = self._checkIncorrectRegisters(codeDiff, astSample)
-            print("checkIncorrectRegisters WORKS")
         except:
             # status = False
             status = True

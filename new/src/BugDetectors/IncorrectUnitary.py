@@ -48,19 +48,10 @@ class IncorrectUnitary():
             'np': np
         }
 
-        # try:
-            
-        # except Exception as e:
-        #     print(f"Error executing code: {e}")
-
-        # print(code, safeGlobals, variables, sep="*********\n")
         tree = ast.parse(code, mode='exec')        
         compiled = compile(tree, filename="<sandbox>", mode="exec")
         # status = exec(code, safeGlobals, variables)
         status = safeExec(code, safeGlobals, variables)
-        # print("status:", status)
-        # print("variables:", variables)
-        # print("safeGlobals:", safeGlobals)
         # Recursively extract arrays from variables
         for varName, value in variables.items():
             foundArrays = self._extractArraysFromObject(value, varName)
@@ -152,6 +143,7 @@ class IncorrectUnitary():
         if status is False:
             non_unitary_gate_array = self._identifyNonUnitaryArrays(codeDiff[1], codeDiff[0])
             if non_unitary_gate_array != []:
+                print(f"\nUNITARY ERROR: Non-unitary matrices found in {', '.join(non_unitary_gate_array)}")
                 status = True
             if status is False:
                 bugTypeMessage = None

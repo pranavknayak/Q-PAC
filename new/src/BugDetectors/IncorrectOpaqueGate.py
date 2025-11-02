@@ -152,14 +152,14 @@ class IncorrectOpaqueGate():
                                 and node.value.func.id == 'Gate'):
                             gate = node.value
                             for argument in gate.args:
-                                print(argument.value)
                                 if isinstance(argument, ast.Constant):
-                                    if isinstance(argument.value, (int, float)) and argument.value > 2:
+                                    if isinstance(argument.value, (int, float)):
                                         buggyGateIDs[target.id] = []
                                         break
                             for kwargument in gate.keywords:
                                 if kwargument.arg == 'num_qubits' and kwargument.value.value > 2:
                                     buggyGateIDs[target.id] = []
+                                    buggyGateIDs[target.id] = argument.value
                                     break
 
                         if (target.id not in buggyCustomIDs
@@ -182,8 +182,9 @@ class IncorrectOpaqueGate():
                             gate = node.value
                             for argument in gate.args:
                                 if isinstance(argument, ast.Constant):
-                                    if isinstance(argument.value, (int, float)) and argument.value > 2:
+                                    if isinstance(argument.value, (int, float)):
                                         patchedGateIDs[target.id] = []
+                                        patchedGateIDs[target.id] = argument.value
                                         break
                             for kwargument in gate.keywords:
                                 if kwargument.arg == 'num_qubits' and kwargument.value.value > 2:
@@ -194,6 +195,11 @@ class IncorrectOpaqueGate():
                                 and isinstance(node.value.func, ast.Attribute)
                                 and node.value.func.attr == 'to_instruction'):
                             patchedCustomIDs[target.id] = []
+
+        for gate_id, qubit_count in buggyGateIDs.items():
+            if gate_id in patchedGateIDs and qubit_count != patchedGateIDs[gate_id]:
+                print(f"\nOPAQUE GATE ERROR: Gate uses different number of qubits in buggy vs fixed version")
+                return True
 
         buggyGateCount, buggyCustomCount = len(buggyGateIDs), len(buggyCustomIDs)
         patchedGateCount, patchedCustomCount = len(patchedGateIDs), len(patchedCustomIDs)
