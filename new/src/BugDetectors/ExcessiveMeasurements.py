@@ -140,7 +140,7 @@ class ExcessiveMeasurements():
         return qubits
 
     def _detectExcessiveMeasurements(self, buggy_analysis, patched_analysis):
-        """Detect if any qubit is measured excessively in buggy code."""
+        """Detect excessive measurements by comparing buggy and patched analysis."""
         excessive = []
         
         for circuit_id in buggy_analysis:
@@ -150,21 +150,19 @@ class ExcessiveMeasurements():
             for qubit in buggy_analysis[circuit_id]:
                 if qubit not in patched_analysis[circuit_id]:
                     continue
-                
+                    
                 buggy_count = buggy_analysis[circuit_id][qubit]['measurement_count']
-                patched_count = patched_analysis[circuit_id].get(qubit, {}).get('measurement_count', 0)
+                patched_count = patched_analysis[circuit_id][qubit]['measurement_count']
                 
                 if buggy_count > patched_count:
-                    buggy_lines = buggy_analysis[circuit_id][qubit]['measurement_lines']
-                    patched_lines = patched_analysis[circuit_id][qubit].get('measurement_lines', [])
-                    
+                    print(f"\nEXCESSIVE MEASUREMENT: Circuit {circuit_id}, qubit {qubit} measured {buggy_count} times at lines {buggy_analysis[circuit_id][qubit]['measurement_lines']} (expected {patched_count} times)")
                     excessive.append({
                         'circuit': circuit_id,
                         'qubit': qubit,
                         'buggy_count': buggy_count,
                         'patched_count': patched_count,
-                        'buggy_lines': buggy_lines,
-                        'patched_lines': patched_lines
+                        'buggy_lines': buggy_analysis[circuit_id][qubit]['measurement_lines'],
+                        'patched_lines': patched_analysis[circuit_id][qubit]['measurement_lines']
                     })
         
         return excessive
@@ -175,20 +173,13 @@ class ExcessiveMeasurements():
         }
         
         try:
-            print("\n=== ExcessiveMeasurements Analysis ===")
             buggy, patched = codeSample[0], codeSample[1]
             astBuggy, astPatched = astSample[0], astSample[1]
             
             buggy_analysis = self._analyzeQubitMeasurements(buggy, astBuggy)
             patched_analysis = self._analyzeQubitMeasurements(patched, astPatched)
             
-            print(f"Buggy analysis: {buggy_analysis}")
-            print(f"Patched analysis: {patched_analysis}")
-            
             excessive = self._detectExcessiveMeasurements(buggy_analysis, patched_analysis)
-            
-            print(f"Excessive measurements found: {len(excessive)}")
-            print(f"Details: {excessive}")
             
             if excessive:
                 messages = []
@@ -199,9 +190,6 @@ class ExcessiveMeasurements():
                         f"(expected {item['patched_count']} times at lines {item['patched_lines']})"
                     )
                 result['ExcessiveMeasurements'] = '; '.join(messages)
-            
-            print(f"Final result: {result}")
-            print("=== End ExcessiveMeasurements Analysis ===\n")
             
         except Exception as e:
             print(f"Error in detectExcessiveMeasurement: {e}")

@@ -70,13 +70,10 @@ class IncorrectMeasurement():
         if len(call_node.args) >= 2:
             # Second argument is the classical bits
             cbits_arg = call_node.args[1]
-            print(f"DEBUG: Extracting classical bits from: {ast.dump(cbits_arg)}")
             if isinstance(cbits_arg, ast.List):
                 for elt in cbits_arg.elts:
                     if isinstance(elt, ast.Constant):
                         classical_bits.append(elt.value)
-                        print(f"DEBUG: Found classical bit: {elt.value}")
-        print(f"DEBUG: Extracted classical bits: {classical_bits}")
         return classical_bits
     
     def _analyzeQubitOperations(self, code, ast_tree):
@@ -112,8 +109,6 @@ class IncorrectMeasurement():
                             if num_qubits > 0:
                                 circuit_qubits[circuit_id] = num_qubits
                                 analysis[circuit_id] = {}
-                                
-                                print(f"DEBUG: Found circuit '{circuit_id}' with {num_qubits} qubits")
                                 
                                 for q in range(num_qubits):
                                     analysis[circuit_id][q] = {
@@ -157,8 +152,6 @@ class IncorrectMeasurement():
                         qubits = self._extractQubitsFromCall(node.value)
                         classical_bits = self._extractClassicalBitsFromMeasure(node.value)
                         
-                        print(f"DEBUG Line {node.lineno}: Measurement on qubits {qubits}, classical bits {classical_bits}, in_loop={in_loop}")
-                        
                         # Handle register variable case
                         if qubits == 'REGISTER':
                             qubits = list(range(circuit_qubits[circuit_name]))
@@ -173,8 +166,6 @@ class IncorrectMeasurement():
                         for i, qubit in enumerate(qubits):
                             if qubit in analysis[circuit_name]:
                                 cbit = classical_bits[i] if i < len(classical_bits) else None
-                                
-                                print(f"  DEBUG: Recording measurement for qubit {qubit} with gates {current_gates[(circuit_name, qubit)]}")
                                 
                                 analysis[circuit_name][qubit]['measurements'].append({
                                     'line': node.lineno,
@@ -194,8 +185,6 @@ class IncorrectMeasurement():
                     elif gate_name.lower() in self.gate_matrices or gate_name.lower() in ['rx', 'ry', 'rz', 'p']:
                         qubits = self._extractQubitsFromCall(node.value)
                         
-                        print(f"DEBUG Line {node.lineno}: Gate '{gate_name}' on qubits {qubits}, in_loop={in_loop}")
-                        
                         # Handle register variable for gates too
                         if qubits == 'REGISTER':
                             qubits = list(range(circuit_qubits[circuit_name]))
@@ -209,7 +198,6 @@ class IncorrectMeasurement():
                                 if qubit in analysis[circuit_name]:
                                     current_matrices[(circuit_name, qubit)] = gate_matrix @ current_matrices[(circuit_name, qubit)]
                                     current_gates[(circuit_name, qubit)].append((gate_name, node.lineno))
-                                    print(f"  DEBUG: Applied '{gate_name}' to qubit {qubit}, current gates: {current_gates[(circuit_name, qubit)]}")
         
         # Recursively walk child nodes
         for child in ast.iter_child_nodes(node):
@@ -286,10 +274,9 @@ class IncorrectMeasurement():
                 patched_has_loop_measurement = any(m.get('in_loop', False) for m in patched_analysis[circuit_id][qubit]['measurements'])
                 
                 if buggy_has_loop_measurement or patched_has_loop_measurement:
-                    print(f"DEBUG: Skipping qubit {qubit} - has loop measurements")
                     continue
                 
-                # Check for length mismatch
+                # Check for missing or extra measurements
                 if (buggy_count == 0 and patched_count > 0):
                     incorrect.append({
                         'circuit': circuit_id,
@@ -299,6 +286,7 @@ class IncorrectMeasurement():
                         'patched_line': patched_analysis[circuit_id][qubit]['measurements'][0]['line'],
                         'error': f'qubit {qubit} not measured in buggy but measured in patched'
                     })
+                    print(f"\nMEASUREMENT BUG: Missing measurement for qubit {qubit} that should be present")
                     continue
                 elif (buggy_count > 0 and patched_count == 0):
                     incorrect.append({
@@ -309,6 +297,7 @@ class IncorrectMeasurement():
                         'patched_line': 'N/A',
                         'error': f'qubit {qubit} measured in buggy but not in patched'
                     })
+                    print(f"\nMEASUREMENT BUG: Extra measurement for qubit {qubit} that should not be present")
                     continue
                 
                 if buggy_count != patched_count or buggy_count == 0:
@@ -327,11 +316,11 @@ class IncorrectMeasurement():
                     buggy_line = buggy_measurements[i]['line']
                     patched_line = patched_measurements[i]['line']
                     
-                    # CHECK MATRIX FIRST - if matrices are the same, quantum state is identical
+                    # Check matrix equality first
                     matrices_same = self._compareMatrices(buggy_matrix, patched_matrix)
                     
                     if matrices_same:
-                        # Matrices are the same - check only classical bit mapping
+                        # If matrices match but classical bits don't, it's a mapping error
                         if buggy_cbit != patched_cbit:
                             incorrect.append({
                                 'circuit': circuit_id,
@@ -341,22 +330,15 @@ class IncorrectMeasurement():
                                 'patched_line': patched_line,
                                 'error': f'wrong classical bit mapping: qubit {qubit} -> cbit {buggy_cbit} (expected {patched_cbit})'
                             })
-                        else:
-                            # Both matrix and classical bits are the same - measurement is correct
-                            print(f"DEBUG: Qubit {qubit} - matrices and classical bits match, measurement is correct")
+                            print(f"\nMEASUREMENT BUG: Qubit {qubit} incorrectly mapped to classical bit(s) - check measurement at line {buggy_line}")
                     else:
-                        # Matrices differ - this means quantum state before measurement differs
-                        
                         cbits_differ = buggy_cbit != patched_cbit
                         
-                        # CRITICAL CHECK: If the measurement line and classical bits are the SAME,
-                        # then the measurement OPERATION is identical - any matrix difference is a GATE error
+                        # If measurement line and bits match, it's a gate error not measurement error
                         if buggy_line == patched_line and not cbits_differ:
-                            print(f"DEBUG: Skipping qubit {qubit} - measurement operation is identical (same line, same cbit), matrices differ due to gate error")
                             continue
                         
                         if cbits_differ:
-                            # Classical bits differ - definitely a measurement error
                             incorrect.append({
                                 'circuit': circuit_id,
                                 'qubit': qubit,
@@ -365,16 +347,15 @@ class IncorrectMeasurement():
                                 'patched_line': patched_line,
                                 'error': f'wrong classical bit mapping: qubit {qubit} -> cbit {buggy_cbit} (expected {patched_cbit})'
                             })
+                            print(f"\nMEASUREMENT BUG: Qubit {qubit} mapped to wrong classical bit(s) at line {buggy_line}")
                         else:
-                            # Classical bits are the same, but matrices differ and lines differ
-                            # Check if one gate sequence is a prefix of the other (measurement position error)
+                            # Check if measurement timing is wrong
                             buggy_is_prefix = (len(buggy_gates) < len(patched_gates) and 
-                                              patched_gates[:len(buggy_gates)] == buggy_gates)
+                                            patched_gates[:len(buggy_gates)] == buggy_gates)
                             patched_is_prefix = (len(patched_gates) < len(buggy_gates) and 
                                                 buggy_gates[:len(patched_gates)] == patched_gates)
                             
                             if buggy_is_prefix:
-                                # Measurement too early
                                 incorrect.append({
                                     'circuit': circuit_id,
                                     'qubit': qubit,
@@ -383,8 +364,8 @@ class IncorrectMeasurement():
                                     'patched_line': patched_line,
                                     'error': f'measurement too early: after {buggy_gates} instead of {patched_gates}'
                                 })
+                                print(f"\nMEASUREMENT BUG: Qubit {qubit} measured too early at line {buggy_line}")
                             elif patched_is_prefix:
-                                # Measurement too late
                                 incorrect.append({
                                     'circuit': circuit_id,
                                     'qubit': qubit,
@@ -393,9 +374,7 @@ class IncorrectMeasurement():
                                     'patched_line': patched_line,
                                     'error': f'measurement too late: after {buggy_gates} instead of {patched_gates}'
                                 })
-                            else:
-                                # Gate sequences differ completely - this is a gate error, not measurement error
-                                print(f"DEBUG: Skipping qubit {qubit} - matrices differ but gate sequences don't have prefix relationship (gate error)")
+                                print(f"\nMEASUREMENT BUG: Qubit {qubit} measured too late at line {buggy_line}")
         
         return incorrect
 
@@ -407,18 +386,11 @@ class IncorrectMeasurement():
         try:
             buggy, patched = codeSample[0], codeSample[1]
             astBuggy, astPatched = astSample[0], astSample[1]
-            
-            print("\n=== IncorrectMeasurement Analysis ===")
+
             buggy_analysis = self._analyzeQubitOperations(buggy, astBuggy)
             patched_analysis = self._analyzeQubitOperations(patched, astPatched)
             
-            print(f"Buggy measurements: {buggy_analysis}")
-            print(f"Patched measurements: {patched_analysis}")
-            
             incorrect = self._detectIncorrectMeasurements(buggy_analysis, patched_analysis)
-            
-            print(f"Incorrect measurements found: {len(incorrect)}")
-            print(f"Details: {incorrect}")
             
             if incorrect:
                 messages = []
@@ -427,8 +399,6 @@ class IncorrectMeasurement():
                         f"Circuit '{item['circuit']}', qubit {item['qubit']} at line {item['buggy_line']}: {item['error']}"
                     )
                 result['IncorrectMeasurement'] = '; '.join(messages)
-            
-            print(f"Final result: {result}")
             
         except Exception as e:
             print(f"Error in detectIncorrectMeasurement: {e}")
