@@ -4,11 +4,14 @@ import numpy as np
 
 class IncorrectStandardGate():
     def _inbuiltGateError(self, codeSample, astSample):
+        from collections import Counter
+
         availableInbuiltGates = [
             "ccx",
             "cx",
             "cz",
-            "h",
+            "cy",
+            # "h",
             "i",
             "p",
             "s",
@@ -19,7 +22,7 @@ class IncorrectStandardGate():
             "x",
             "y",
             "z",
-            "swap"
+            "swap",
         ]
         regexPattern = r".+\..*"
 
@@ -28,12 +31,11 @@ class IncorrectStandardGate():
         buggyList = list(filter(("").__ne__, buggy.split("\n")))
         patchedList = list(filter(("").__ne__, patched.split("\n")))
         buggyGate, patchedGate = [], []
-        # astBuggy, astPatched = ast.walk(ast.parse(buggy)), ast.walk(ast.parse(patched))
         astBuggy, astPatched = ast.walk(astSample[0]), ast.walk(astSample[1])
         buggyRegs, patchedRegs = {}, {}
         buggy_int_vals, patched_int_vals = {}, {}
 
-        """ Retrieves all instances of a QuantumCircuit object in both, the buggy and patched codes."""
+        # discover circuits / ints / registers in buggy
         for node in astBuggy:
             if isinstance(node, ast.Assign):
                 for id in getattr(node, "targets"):
@@ -67,30 +69,28 @@ class IncorrectStandardGate():
                             else:
                                 buggyRegs[id.id] = node.value.args[0].value
 
-
-
+        # discover circuits / ints / registers in patched
         for node in astPatched:
             if isinstance(node, ast.Assign):
                 for id in getattr(node, "targets"):
                     if isinstance(id, ast.Name):
-                        qubits = 0
                         if isinstance(node.value, ast.Constant):
                             patched_int_vals[id.id] = node.value.value
                         elif (
                             id.id not in patchedID
                             and isinstance(node.value, ast.Call)
                             and isinstance(node.value.func, ast.Name)
-                            and getattr(node, "value").func.id == "QuantumCircuit" # Throwing bug, investigate further.
+                            and getattr(node, "value").func.id == "QuantumCircuit"
                         ):
+                            qubits = 0
                             args = node.value.args
-                            if isinstance(args[0], ast.Constant):
+                            if len(args) > 0 and isinstance(args[0], ast.Constant):
                                 qubits = args[0].value
-                            elif isinstance(args[0], ast.Name):
+                            elif len(args) > 0 and isinstance(args[0], ast.Name):
                                 if args[0].id in patchedRegs:
                                     qubits = patchedRegs[args[0].id]
                                 elif args[0].id in patched_int_vals:
                                     qubits = patched_int_vals[args[0].id]
-
                             patchedID[id.id] = [0] * qubits
                         elif (
                             id.id not in patchedRegs
@@ -103,38 +103,39 @@ class IncorrectStandardGate():
                             else:
                                 patchedRegs[id.id] = node.value.args[0].value
 
-        """ Considering the cases when there is a one to one mapping of the QuantumCircuits
-        in buggy code to the QuantumCircuits in patched code. """
-        # if len(buggyID) != len(patchedID):
-        #     print("HIIHIHIHIH\n")
-        #     print(buggyID)
-        #     print(patchedID)
-        #     return True
-
-        """ Checks if the gate is amongst the available gates in Qiskit."""
+        # collect ordered inbuilt gate names per recognized circuit (normalize to lower)
         for line in buggyList:
             temporaryStatus = re.search(regexPattern, line)
             if temporaryStatus is not None:
-                iden = line.split(".")[0]
-                gate = line.split(".")[1].split("(")[0]
+                parts = line.split(".")
+                if len(parts) < 2:
+                    continue
+                iden = parts[0].strip()
+                gate = parts[1].split("(")[0].strip().lower()
                 if iden in buggyID and gate in availableInbuiltGates:
                     buggyGate.append(gate)
 
         for line in patchedList:
             temporaryStatus = re.search(regexPattern, line)
             if temporaryStatus is not None:
-                iden = line.split(".")[0]
-                gate = line.split(".")[1].split("(")[0]
+                parts = line.split(".")
+                if len(parts) < 2:
+                    continue
+                iden = parts[0].strip()
+                gate = parts[1].split("(")[0].strip().lower()
                 if iden in patchedID and gate in availableInbuiltGates:
                     patchedGate.append(gate)
 
-        """ Checks if the number of gates used in both codes are the same."""
-        if set(buggyGate) != set(patchedGate):
+        # Compare with multiplicity first, then order
+        if Counter(buggyGate) != Counter(patchedGate):
             return True
 
-        """ Checks if any of the gates used are differenet, line by line in both the codes."""
-        for index in range(len(buggyGate)):
-            if buggyGate[index] != patchedGate[index]:
+        # If counts match but order differs -> error
+        if len(buggyGate) != len(patchedGate):
+            return True
+
+        for bg, pg in zip(buggyGate, patchedGate):
+            if bg != pg:
                 return True
 
         return False

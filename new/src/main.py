@@ -116,7 +116,7 @@ def main():
         with open(label_file, 'r') as lf:
             true_label.extend(line.rstrip("\n") for line in lf)
         
-        # if "IncorrectUnitary" not in true_label:
+        # if "IncorrectStandardGate" not in true_label:
         #     continue
 
         buggy_path = os.path.join(dirpath, bug_files[0])
