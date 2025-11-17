@@ -43,7 +43,7 @@ class BugInvestigator():
         if current_class == "":
             current_class = self.root_class
 
-        # if current_class == 'IncorrectUnitary':
+        # if current_class == 'IncorrectUnitary' or current_class == 'IncorrectNumberOfSamples':
         #     return 'None'
                 
         self.bug_detector_message[current_class] = 'None'

@@ -48,20 +48,22 @@ class IncorrectInit():
             else:
                 value += char
 
-        for args in range(len(paren)):
-            if isinstance(paren[args], list):
-                for index in range(len(paren[args])):
-                    try:
-                        paren[args][index] = safeEval(paren[args][index], {})
-                    except NameError:
-                        continue
-            else:
-                try:
-                    paren[args] = safeEval(paren[args], {})
-                except NameError:
-                    continue
+        # for args in range(len(paren)):
+        #     if isinstance(paren[args], list):
+        #         for index in range(len(paren[args])):
+        #             try:
+        #                 paren[args][index] = safeEval(paren[args][index], {})
+        #             except NameError:
+        #                 continue
+        #     else:
+        #         try:
+        #             paren[args] = safeEval(paren[args], {})
+        #         except NameError:
+        #             continue
+        paren = [item for item in paren if '=' not in item]
+        return paren
+        # return np.array(paren)
 
-        return np.array(paren)
 
 
     def _checkIncorrectParam(self, codeSample, astSample):
@@ -109,6 +111,8 @@ class IncorrectInit():
                         and getattr(node, "value").func.id == "QuantumCircuit"
                     ):
                         args = node.value.args
+                        if args == []:
+                            return True
                         if isinstance(args[0], ast.Constant):
                             qubits = args[0].value
                         elif isinstance(args[0], ast.Name):
@@ -197,9 +201,10 @@ class IncorrectInit():
                     args = line.split(gate)[1]
                     args = _normalize_register_indices(args, buggyRegs)
                     if gate not in buggyGate:
-                        buggyGate[gate] = np.array([self._returnArgs(args)])
+                        # buggyGate[gate] = np.array([self._returnArgs(args)])
+                        buggyGate[gate] = [self._returnArgs(args)]
                     else:
-                        buggyGate[gate] = np.append(buggyGate[gate], self._returnArgs(args))
+                        buggyGate[gate].append(self._returnArgs(args))
 
         for line in patchedList:
             temporaryStatus = re.search(regex1, line)
@@ -212,10 +217,12 @@ class IncorrectInit():
                     args = line.split(gate)[1]
                     args = _normalize_register_indices(args, patchedRegs)
                     if gate not in patchedGate:
-                        patchedGate[gate] = np.array([self._returnArgs(args)])
+                        # patchedGate[gate] = np.array([self._returnArgs(args)])
+                        patchedGate[gate] = [self._returnArgs(args)]
                     else:
-                        patchedGate[gate] = np.append(patchedGate[gate], self._returnArgs(args))
-
+                        # patchedGate[gate] = np.append(patchedGate[gate], [self._returnArgs(args)])
+                        patchedGate[gate].append(self._returnArgs(args))
+        print('gatessss:',buggyGate, patchedGate)
         # Only consider gates that appear in BOTH versions (ignore excess/missing gates)
         common_gates = set(buggyGate.keys()) & set(patchedGate.keys())
         buggyGate = {g: buggyGate[g] for g in common_gates}
@@ -261,41 +268,71 @@ class IncorrectInit():
                 arr = np.asarray(x)
                 if arr.ndim == 1:
                     return [arr]
-                return [arr[i] for i in range(arr.shape[0])]
+                return [[arr[i]] for i in range(arr.shape[0])]
             except Exception:
                 return [np.asarray(x)]
 
         # helper: tolerant equality for arg-vectors
+        # def _args_equal(a, b):
+        #     try:
+        #         if np.array_equal(np.asarray(a), np.asarray(b)):
+        #             return True
+        #     except Exception:
+        #         pass
+        #     try:
+        #         sa = list(map(str, np.asarray(a).flatten()))
+        #         sb = list(map(str, np.asarray(b).flatten()))
+        #         return set(sa) == set(sb)
+        #     except Exception:
+        #         return False
+
         def _args_equal(a, b):
             try:
-                if np.array_equal(np.asarray(a), np.asarray(b)):
-                    return True
-            except Exception:
-                pass
-            try:
-                sa = list(map(str, np.asarray(a).flatten()))
-                sb = list(map(str, np.asarray(b).flatten()))
-                return set(sa) == set(sb)
+                arr_a = np.asarray(a)
+                arr_b = np.asarray(b)
+
+                # CASE 1: Both are 1D → ignore order
+                if arr_a.ndim == 1 and arr_b.ndim == 1:
+                    sa = list(map(str, arr_a.flatten()))
+                    sb = list(map(str, arr_b.flatten()))
+                    return sorted(sa) == sorted(sb)
+
+                # CASE 2: Both are >1D → require exact match (order matters)
+                if arr_a.ndim > 1 and arr_b.ndim > 1:
+                    # allow numpy to check exact equality with order
+                    return np.array_equal(arr_a, arr_b)
+
+                # If dimensions differ → not equal
+                return False
+
             except Exception:
                 return False
+
 
         # Compare circuit init args only for circuits present in both versions
         common_quantums = set(buggyQuantum.keys()) & set(patchedQuantum.keys())
         for quantum in common_quantums:
-            if not _args_equal(buggyQuantum[quantum], patchedQuantum[quantum]):
+            # if not _args_equal(buggyQuantum[quantum], patchedQuantum[quantum]):
+            if not buggyQuantum[quantum]==patchedQuantum[quantum]:
+                print('adsgagsd',buggyQuantum[quantum], patchedQuantum[quantum])
                 return True
 
         # Compare gate argument vectors only for gates present in BOTH versions (common_gates)
         for gate in buggyGate.keys():  # buggyGate already restricted to common_gates
-            buggy_rows = _rows(buggyGate[gate])
-            patched_rows = _rows(patchedGate[gate])
+            # buggy_rows = _rows(buggyGate[gate])
+            # patched_rows = _rows(patchedGate[gate])
+            buggy_rows = buggyGate[gate]
+            patched_rows = patchedGate[gate]
             # every buggy row must have a matching patched row (order-insensitive)
             for br in buggy_rows:
-                if not any(_args_equal(br, pr) for pr in patched_rows):
+                # if not any(_args_equal(br, pr) for pr in patched_rows):
+                if not any(br==pr for pr in patched_rows):
                     return True
             # and every patched row must have a matching buggy row
             for pr in patched_rows:
-                if not any(_args_equal(pr, br) for br in buggy_rows):
+                # if not any(_args_equal(pr, br) for br in buggy_rows):
+                if not any(br==pr for br in buggy_rows):
+                    print("asdgasgSDG")
                     return True
 
         return False

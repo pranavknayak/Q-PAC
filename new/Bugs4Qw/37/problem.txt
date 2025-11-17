@@ -1,0 +1,2 @@
+different names of circuits
+cx and cnot

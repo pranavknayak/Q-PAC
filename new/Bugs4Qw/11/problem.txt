@@ -1,0 +1,3 @@
+name of circuits are diff, causing IncorrectInit
+also, probably just an example to show how adding gates work 
+(shouldnt really be a testcase)

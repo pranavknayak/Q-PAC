@@ -58,6 +58,14 @@ def remove_comments(code):
 def main():
     amt=0
     crt=0
+    lbl=0
+    mnf=0
+    nab=0
+    fail=0
+    curr=[]
+    working=[]
+    lbled=[]
+    failed=[]
     parser = argparse.ArgumentParser(description="Process test case directories for bug/fix detection and evaluate metrics.")
     parser.add_argument(
         "--test-base-dir", 
@@ -116,8 +124,8 @@ def main():
         with open(label_file, 'r') as lf:
             true_label.extend(line.rstrip("\n") for line in lf)
         
-        # if "IncorrectStandardGate" not in true_label:
-        #     continue
+        lbl+=1
+        lbled.append(dirpath)
 
         buggy_path = os.path.join(dirpath, bug_files[0])
         fixed_path = os.path.join(dirpath, fix_files[0])
@@ -179,6 +187,12 @@ def main():
                     den += 1
             
             accuracy = num / den if den > 0 else 0
+            if accuracy==1:
+                crt+=1
+                working.append(dirpath)
+            else:
+                fail+=1
+                failed.append(dirpath)
 
             precision = precision_score(true_bin, pred_bin, average='micro')
             recall = recall_score(true_bin, pred_bin, average='micro')
@@ -186,11 +200,12 @@ def main():
             accuracy_array.append(accuracy)
             precision_array.append(precision)
             recall_array.append(recall)
-            crt+=1
 
         except Exception:
             print(f"ERROR AT {dirpath}")
             traceback.print_exc()
+            amt+=1
+            curr.append(dirpath)
 
     if(accuracy_array):
         accuracy_array = np.array(accuracy_array)
@@ -202,6 +217,16 @@ def main():
         print(f"Average Accuracy:  {np.mean(accuracy_array):.4f}")
         print(f"Average Recall:    {np.mean(recall_array):.4f}")
         print(f"Average Precision: {np.mean(precision_array):.4f}")
+
+        print("\n\nAverage Accuracy = ", np.mean(accuracy_array))
+        print("Average Recall = ", np.mean(recall_array))
+        print("Average Precision = ", np.mean(precision_array))
+        print('Labeled Testcases: ', lbl)
+        print('Crashing Testcases: ', amt)
+        print('Failed Testcases: ', fail)
+        print('Working Testcases: ', crt)
+        print("Crashing: ",curr)
+        print("Failed: ",failed)
 
 if __name__ == "__main__":
     main()

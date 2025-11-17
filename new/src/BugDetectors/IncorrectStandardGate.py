@@ -23,6 +23,8 @@ class IncorrectStandardGate():
             "y",
             "z",
             "swap",
+            'id',
+            'rx',
         ]
         regexPattern = r".+\..*"
 

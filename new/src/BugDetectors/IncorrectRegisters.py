@@ -34,8 +34,10 @@ class IncorrectRegisters():
                 continue
             args = [arg.strip() for arg in line.split('=')]
             if ',' not in args[0]: #handle multiple assignment later
-                if args[0].isnumeric():
-                    buggyInts[args[0]] = float(args[1])
+                # if args[0].isnumeric():
+                #     buggyInts[args[0]] = float(args[1])
+                value = eval(args[1], {"__builtins__": None}, {})
+                buggyInts[args[0]] = value
 
         for line in patchedList:
             intStatus = re.search(integerRegex, line)
@@ -46,8 +48,10 @@ class IncorrectRegisters():
                 continue
             args = [arg.strip() for arg in line.split('=')]
             if ',' not in args[0]: #handle multiple assignment later
-                if args[0].isnumeric():
-                    patchedInts[args[0]] = float(args[1])
+                # if args[0].isnumeric():
+                #     patchedInts[args[0]] = float(args[1])
+                value = eval(args[1], {"__builtins__": None}, {})
+                patchedInts[args[0]] = value
 
 
 
@@ -65,7 +69,12 @@ class IncorrectRegisters():
                     else:
                         count = 0
                 else:
-                    count = int(args[1:2])
+                    # count = int(args[1:2])
+                    val = args[1:-1]
+                    if val.isnumeric():
+                        count=int(val)
+                    else:
+                        count=buggyInts[val]
                 buggyClassicalRegisters[register] = count
 
             temporaryStatus = re.search(quantumRegex, line)
@@ -82,7 +91,11 @@ class IncorrectRegisters():
                         count = 0
                 else:
                     # count = int(args[1:-1])
-                    count = int(args[1:2])
+                    val = args[1:-1]
+                    if val.isnumeric():
+                        count=int(val)
+                    else:
+                        count=buggyInts[val]
                 buggyQuantumRegisters[register] = count
 
         for line in patchedList:
@@ -99,7 +112,12 @@ class IncorrectRegisters():
                     else:
                         count = 0
                 else:
-                    count = int(args[1:-1])
+                    # count = int(args[1:-1])
+                    val = args[1:-1]
+                    if val.isnumeric():
+                        count=int(val)
+                    else:
+                        count=patchedInts[val]
                 patchedClassicalRegisters[register] = count
 
             temporaryStatus = re.search(quantumRegex, line)
@@ -115,7 +133,12 @@ class IncorrectRegisters():
                     else:
                         count = 0
                 else:
-                    count = int(args[1:-1])
+                    # count = int(args[1:-1])
+                    val = args[1:-1]
+                    if val.isnumeric():
+                        count=int(val)
+                    else:
+                        count=patchedInts[val]
                 patchedQuantumRegisters[register] = count
 
         buggyCircs = {}
@@ -130,12 +153,11 @@ class IncorrectRegisters():
                     if circ not in buggyCircs:
                         buggyCircs[circ] = {'qubits': 0, 'bits': 0}
                     for arg in funcCall.args:
-                        if isinstance(arg, ast.Name):
-                            if arg.id in buggyClassicalRegisters: # These lines break when the circuits are initialized with variables holding integers
+                        if isinstance(arg, ast.Name) and arg.id in buggyClassicalRegisters: # These lines break when the circuits are initialized with variables holding integers
                                 buggyCircs[circ]['bits'] += buggyClassicalRegisters[arg.id]
                                 registerFound = 1
-                            elif arg.id in buggyInts:
-                                buggyCircs[circ]['bits'] = buggyInts[arg.id]
+                            # elif arg.id in buggyInts:
+                            #     buggyCircs[circ]['bits'] = buggyInts[arg.id]
                         if isinstance(arg, ast.Name) and arg.id in buggyQuantumRegisters:
                             buggyCircs[circ]['qubits'] += buggyQuantumRegisters[arg.id]
                             registerFound = 1
