@@ -20,14 +20,11 @@ class IncorrectDecisionToMeasure():
         return binrep_call
 
     def _extractSubscriptInfo(self, node):
-        """Extract detailed info about a subscript for comparison"""
         if not isinstance(node, ast.Subscript):
             return None
         
-        # get what's being subscripted
         value_repr = ast.dump(node.value)
         
-        # get the index/slice being used
         if isinstance(node.slice, ast.Name):
             index_repr = node.slice.id
             slice_type = 'name'
@@ -35,10 +32,9 @@ class IncorrectDecisionToMeasure():
             index_repr = str(node.slice.value)
             slice_type = 'constant'
         elif isinstance(node.slice, ast.Slice):
-            # handle slicing like [1:] or [:5]
             index_repr = ast.dump(node.slice)
             slice_type = 'slice'
-        elif isinstance(node.slice, ast.Index):  # older Python versions
+        elif isinstance(node.slice, ast.Index):
             if isinstance(node.slice.value, ast.Name):
                 index_repr = node.slice.value.id
                 slice_type = 'name'
@@ -55,12 +51,10 @@ class IncorrectDecisionToMeasure():
         return {'value': value_repr, 'index': index_repr, 'slice_type': slice_type}
 
     def _checkLoopIndexUsage(self, code_ast):
-        # track loop variables and subscript usage within loops
         loop_info = []
         
         for node in code_ast:
             if isinstance(node, ast.For):
-                # get the loop variable(s)
                 loop_vars = []
                 if isinstance(node.target, ast.Name):
                     loop_vars.append(node.target.id)
@@ -69,10 +63,8 @@ class IncorrectDecisionToMeasure():
                         if isinstance(n, ast.Name):
                             loop_vars.append(n.id)
                 
-                # get what's being iterated - need full dump to catch slicing
                 iter_dump = ast.dump(node.iter)
                 
-                # collect all subscripts in loop body with their details
                 subscripts = []
                 for child in ast.walk(node):
                     if isinstance(child, ast.Subscript):
@@ -89,8 +81,6 @@ class IncorrectDecisionToMeasure():
         return loop_info
 
     def _compareSubscripts(self, buggy_subs, patched_subs):
-        """Compare subscripts more intelligently by grouping by what's being accessed"""
-        # group by the object being subscripted
         def group_by_value(subs):
             grouped = {}
             for sub in subs:
@@ -103,29 +93,23 @@ class IncorrectDecisionToMeasure():
         buggy_grouped = group_by_value(buggy_subs)
         patched_grouped = group_by_value(patched_subs)
         
-        # check if same objects are being subscripted
         buggy_keys = set(buggy_grouped.keys())
         patched_keys = set(patched_grouped.keys())
         
-        # if different objects accessed, that's a difference
         if buggy_keys != patched_keys:
             return True
         
-        # for each object, compare how it's being accessed
         for key in buggy_keys:
             b_accesses = buggy_grouped[key]
             p_accesses = patched_grouped[key]
             
-            # compare each access
             for i in range(min(len(b_accesses), len(p_accesses))):
                 b_acc = b_accesses[i]
                 p_acc = p_accesses[i]
                 
-                # if index changed
                 if b_acc['index'] != p_acc['index']:
                     return True
                 
-                # if slice type changed (constant to variable, etc)
                 if b_acc['slice_type'] != p_acc['slice_type']:
                     return True
         
@@ -135,7 +119,10 @@ class IncorrectDecisionToMeasure():
         index_access = []
         for node in code_ast:
             if isinstance(node, ast.Subscript):
-                index_access.append(node.slice)
+                index_access.append({
+                    'slice': node.slice,
+                    'value': ast.dump(node.value)
+                })
         print(index_access)
         return index_access
 
@@ -151,13 +138,60 @@ class IncorrectDecisionToMeasure():
 
         if len(buggy_index_access) != len(patched_index_access):
             return True
-        else:
-            for iter_ in range(0, len(buggy_index_access)):
-                print(buggy_index_access[iter_].__dict__, patched_index_access[iter_].__dict__)
-                if type(buggy_index_access[iter_]) != type(patched_index_access[iter_]):
+        
+        buggy_by_value = {}
+        for item in buggy_index_access:
+            val = item['value']
+            if val not in buggy_by_value:
+                buggy_by_value[val] = []
+            buggy_by_value[val].append(item['slice'])
+        
+        patched_by_value = {}
+        for item in patched_index_access:
+            val = item['value']
+            if val not in patched_by_value:
+                patched_by_value[val] = []
+            patched_by_value[val].append(item['slice'])
+        
+        if set(buggy_by_value.keys()) != set(patched_by_value.keys()):
+            return True
+        
+        for val in buggy_by_value:
+            b_slices = buggy_by_value[val]
+            p_slices = patched_by_value[val]
+            
+            if len(b_slices) != len(p_slices):
+                return True
+            
+            for i in range(len(b_slices)):
+                b_slice = b_slices[i]
+                p_slice = p_slices[i]
+                
+                if b_slice is None or p_slice is None:
+                    if b_slice != p_slice:
+                        return True
+                    continue
+                
+                print(type(b_slice), type(p_slice))
+                if type(b_slice) != type(p_slice):
                     return True
-                elif buggy_index_access[iter_].__dict__ != patched_index_access[iter_].__dict__:
-                    return True
+                
+                if isinstance(b_slice, ast.Slice):
+                    if ast.dump(b_slice) != ast.dump(p_slice):
+                        return True
+                elif isinstance(b_slice, ast.Name):
+                    if b_slice.id != p_slice.id:
+                        return True
+                elif isinstance(b_slice, ast.Constant):
+                    if b_slice.value != p_slice.value:
+                        return True
+                elif hasattr(b_slice, '__dict__') and hasattr(p_slice, '__dict__'):
+                    if b_slice.__dict__ != p_slice.__dict__:
+                        return True
+                else:
+                    if ast.dump(b_slice) != ast.dump(p_slice):
+                        return True
+
         return False
 
     def _hasLoopOrSubscript(self, code_ast):
