@@ -134,6 +134,9 @@ class IncorrectUnitary():
             if msg.startswith("'Sum of amplitudes-squared is not 1,") or 'not CPTP' in msg:
                 return True
             return False
+        except (IndexError, AttributeError, ValueError, TypeError, KeyError, NameError):
+            # Runtime errors in buggy code (invalid qubit indices, missing gates, undefined vars, etc.) -> not a unitary error
+            return False
 
     def _detectIncorrectUnitary(self, codeDiff, astSample):
         bugTypeMessage = "Non-unitary matrix(ces) (which is/are supposed to be unitary) found."
