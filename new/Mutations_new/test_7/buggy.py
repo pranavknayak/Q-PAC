@@ -1,6 +1,16 @@
-# build a vector of N circuits
-circuits = [make_circuit(p) for p in params]
-# then later assume M results
-for i in range(len(ret.results)):  
-    outcome = execute(circuits[i], shots)
-    log.append(outcome)
+from qiskit import QuantumCircuit
+from qiskit.primitives import Sampler
+
+circuits = []
+for i in range(4):
+    qc = QuantumCircuit(2)
+    qc.rx(i * 0.5, 0)
+    qc.measure_all()
+    circuits.append(qc)
+
+sampler = Sampler()
+result = sampler.run(circuits).result()
+
+for i in range(4):
+    counts = result.quasi_dists[i + 1]  # WRONG: off by one
+    print(f"Circuit {i}: {counts}")

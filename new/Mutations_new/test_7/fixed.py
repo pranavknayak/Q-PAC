@@ -1,6 +1,16 @@
-circuits = [make_circuit(p) for p in params]
-# ensure same length
-assert len(ret.results) == len(circuits)
-for idx in range(len(circuits)):
-    outcome = execute(circuits[idx], shots)
-    log.append(outcome)
+from qiskit import QuantumCircuit
+from qiskit.primitives import Sampler
+
+circuits = []
+for i in range(4):
+    qc = QuantumCircuit(2)
+    qc.rx(i * 0.5, 0)
+    qc.measure_all()
+    circuits.append(qc)
+
+sampler = Sampler()
+result = sampler.run(circuits).result()
+
+for i in range(4):
+    counts = result.quasi_dists[i]  # CORRECT
+    print(f"Circuit {i}: {counts}")

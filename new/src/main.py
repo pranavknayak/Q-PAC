@@ -39,7 +39,8 @@ def infer_label(bugErrorMessage):
 def encode_labels(labels, label_to_idx):
     vec = [0] * len(label_to_idx)
     for label in labels:
-        vec[label_to_idx[label]] = 1
+        if label in label_to_idx:  # Only encode labels that exist in label_to_idx
+            vec[label_to_idx[label]] = 1
     return vec
 
 def remove_comments(code):

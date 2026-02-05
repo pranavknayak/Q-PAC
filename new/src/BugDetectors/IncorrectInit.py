@@ -223,10 +223,8 @@ class IncorrectInit():
                         # patchedGate[gate] = np.append(patchedGate[gate], [self._returnArgs(args)])
                         patchedGate[gate].append(self._returnArgs(args))
         print('gatessss:',buggyGate, patchedGate)
-        # Only consider gates that appear in BOTH versions (ignore excess/missing gates)
+        # Only consider gates that appear in BOTH versions (ignore excess/missing gates here; handled by IncorrectStandardGate)
         common_gates = set(buggyGate.keys()) & set(patchedGate.keys())
-        buggyGate = {g: buggyGate[g] for g in common_gates}
-        patchedGate = {g: patchedGate[g] for g in common_gates}
         # ------------------------------------------------------------------------------
 
         """ Checks if the arguments are amongst the possible arguments for a QuantumCircuit
@@ -310,30 +308,35 @@ class IncorrectInit():
 
 
         # Compare circuit init args only for circuits present in both versions
-        common_quantums = set(buggyQuantum.keys()) & set(patchedQuantum.keys())
+        # Use the resolved qubit counts from buggyID/patchedID instead of literal args
+        common_quantums = set(buggyID.keys()) & set(patchedID.keys())
         for quantum in common_quantums:
-            # if not _args_equal(buggyQuantum[quantum], patchedQuantum[quantum]):
-            if not buggyQuantum[quantum]==patchedQuantum[quantum]:
-                print('adsgagsd',buggyQuantum[quantum], patchedQuantum[quantum])
+            # Compare resolved qubit counts (len of [0]*qubits)
+            if len(buggyID[quantum]) != len(patchedID[quantum]):
+                print('Circuit size mismatch:', len(buggyID[quantum]), len(patchedID[quantum]))
                 return True
 
         # Compare gate argument vectors only for gates present in BOTH versions (common_gates)
-        for gate in buggyGate.keys():  # buggyGate already restricted to common_gates
-            # buggy_rows = _rows(buggyGate[gate])
-            # patched_rows = _rows(patchedGate[gate])
-            buggy_rows = buggyGate[gate]
-            patched_rows = patchedGate[gate]
-            # every buggy row must have a matching patched row (order-insensitive)
-            for br in buggy_rows:
-                # if not any(_args_equal(br, pr) for pr in patched_rows):
-                if not any(br==pr for pr in patched_rows):
-                    return True
-            # and every patched row must have a matching buggy row
-            for pr in patched_rows:
-                # if not any(_args_equal(pr, br) for br in buggy_rows):
-                if not any(br==pr for br in buggy_rows):
-                    print("asdgasgSDG")
-                    return True
+        for gate in common_gates:
+            buggy_rows = list(buggyGate[gate])
+            patched_rows = list(patchedGate[gate])
+
+            # Remove exact matches (same gate, same args) from both sides.
+            for pr in patched_rows[:]:
+                matched = False
+                for i, br in enumerate(buggy_rows):
+                    if br == pr:
+                        buggy_rows.pop(i)
+                        matched = True
+                        break
+                if matched:
+                    patched_rows.remove(pr)
+
+            # After removing matches:
+            # - leftover only on one side => gate count/name handled by IncorrectStandardGate (skip)
+            # - leftover on BOTH sides => same gate present but args differ => IncorrectInit
+            if buggy_rows and patched_rows:
+                return True
 
         return False
 

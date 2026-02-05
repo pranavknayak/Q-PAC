@@ -1,7 +1,14 @@
-decoded = []
-for idx, circuit in enumerate(circuits):
-    # FIXED: ret.measurements[idx]
-    counts = {
-        k: v for k, v in ret.measurements[idx].items()
-    }
-    decoded.append(counts)
+from qiskit import QuantumCircuit
+from qiskit.primitives import Sampler
+
+circuits = [QuantumCircuit(1) for _ in range(3)]
+for qc in circuits:
+    qc.h(0)
+    qc.measure_all()
+
+sampler = Sampler()
+result = sampler.run(circuits).result()
+
+for idx in range(len(circuits)):
+    data = result.quasi_dists[idx]  # CORRECT
+    print(data)

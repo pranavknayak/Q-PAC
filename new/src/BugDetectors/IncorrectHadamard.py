@@ -2,6 +2,7 @@ import ast
 import re
 import numpy as np
 from collections import defaultdict
+from safeEval import safeEval
 
 class IncorrectHadamard():
     def _extractIters(self, node: ast.For):
@@ -119,16 +120,25 @@ class IncorrectHadamard():
                 inner = qubit_arg[1:-1]
                 for part in inner.split(","):
                     part = part.strip()
-                    if part.isdigit():
-                        indices.append(int(part))
+                    try:
+                        indices.append(int(safeEval(part, buggy_int_vals)))
+                    except:
+                        if part.isdigit():
+                            indices.append(int(part))
             elif qubit_arg.isdigit():
                 indices.append(int(qubit_arg))
             else:
-                m = re.match(r".*\[(\d+)\].*", qubit_arg)
-                if m:
-                    indices.append(int(m.group(1)))
-                else:
-                    full_reg = True
+                # Try to evaluate as expression first (e.g., 0+1, 2-1, etc.)
+                try:
+                    idx = int(safeEval(qubit_arg, buggy_int_vals))
+                    indices.append(idx)
+                except:
+                    # Check for register indexing like q[0]
+                    m = re.match(r".*\[(\d+)\].*", qubit_arg)
+                    if m:
+                        indices.append(int(m.group(1)))
+                    else:
+                        full_reg = True
 
             circ_result = re.search(circuitRegex, line)
             if circ_result is None:
@@ -160,16 +170,25 @@ class IncorrectHadamard():
                 inner = qubit_arg[1:-1]
                 for part in inner.split(","):
                     part = part.strip()
-                    if part.isdigit():
-                        indices.append(int(part))
+                    try:
+                        indices.append(int(safeEval(part, patched_int_vals)))
+                    except:
+                        if part.isdigit():
+                            indices.append(int(part))
             elif qubit_arg.isdigit():
                 indices.append(int(qubit_arg))
             else:
-                m = re.match(r".*\[(\d+)\].*", qubit_arg)
-                if m:
-                    indices.append(int(m.group(1)))
-                else:
-                    full_reg = True
+                # Try to evaluate as expression first (e.g., 0+1, 2-1, etc.)
+                try:
+                    idx = int(safeEval(qubit_arg, patched_int_vals))
+                    indices.append(idx)
+                except:
+                    # Check for register indexing like q[0]
+                    m = re.match(r".*\[(\d+)\].*", qubit_arg)
+                    if m:
+                        indices.append(int(m.group(1)))
+                    else:
+                        full_reg = True
 
             circ_result = re.search(circuitRegex, line)
             if circ_result is None:
