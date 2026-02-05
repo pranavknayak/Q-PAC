@@ -21,7 +21,7 @@ class NumericalStability:
         astBuggy, astPatched = AstSample[0], AstSample[1]
         buggyArrs, patchedArrs = {}, {}
         buggyAggs, patchedAggs = {}, {}
-        for node in astBuggy:
+        for node in ast.walk(astBuggy):
             if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
                 varName = node.targets[0].id
                 if isinstance(node.value, ast.Call):
@@ -39,7 +39,13 @@ class NumericalStability:
                                     arr_len,
                                 ]
                             elif node.value.func.attr in self.aggregationFunctions:
-                                buggyArrs[varName].append(node.value.func.attr)
+                                arr_list = list_wrapper.args[0]
+                                arr_len = len(arr_list.elts)
+                                entry = [arr_len, node.value.func.attr]
+                                if varName in buggyAggs:
+                                    buggyAggs[varName].append(('inline', entry))
+                                else:
+                                    buggyAggs[varName] = [('inline', entry)]
 
                         elif (
                             isinstance(list_wrapper.args[0], ast.Name)
@@ -88,6 +94,20 @@ class NumericalStability:
                                     ),
                                 ]
 
+                    elif (
+                        isinstance(node.value.func, ast.Name)
+                        and isinstance(node.value.args[0], ast.List)
+                        and node.value.func.id in self.aggregationFunctions
+                    ):
+                        arr_list = node.value.args[0]
+                        arr_len = len(arr_list.elts)
+                        entry = [arr_len, node.value.func.id]
+                        if isinstance(node.targets[0], ast.Name):
+                            if node.targets[0].id in buggyAggs:
+                                buggyAggs[node.targets[0].id].append(('inline', entry))
+                            else:
+                                buggyAggs[node.targets[0].id] = [('inline', entry)]
+
                 elif isinstance(node.value, ast.List):
                     arr_list = node.value
                     arr_len = len(arr_list.elts)
@@ -95,7 +115,7 @@ class NumericalStability:
                         arr_len,
                     ]
 
-        for node in astPatched:
+        for node in ast.walk(astPatched):
             if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
                 varName = node.targets[0].id
                 if isinstance(node.value, ast.Call):
@@ -113,7 +133,13 @@ class NumericalStability:
                                     arr_len,
                                 ]
                             elif node.value.func.attr in self.aggregationFunctions:
-                                patchedArrs[varName].append(node.value.func.attr)
+                                arr_list = list_wrapper.args[0]
+                                arr_len = len(arr_list.elts)
+                                entry = [arr_len, node.value.func.attr]
+                                if varName in patchedAggs:
+                                    patchedAggs[varName].append(('inline', entry))
+                                else:
+                                    patchedAggs[varName] = [('inline', entry)]
 
                         elif (
                             isinstance(list_wrapper.args[0], ast.Name)
@@ -162,6 +188,20 @@ class NumericalStability:
                                     ),
                                 ]
 
+                    elif (
+                        isinstance(node.value.func, ast.Name)
+                        and isinstance(node.value.args[0], ast.List)
+                        and node.value.func.id in self.aggregationFunctions
+                    ):
+                        arr_list = node.value.args[0]
+                        arr_len = len(arr_list.elts)
+                        entry = [arr_len, node.value.func.id]
+                        if isinstance(node.targets[0], ast.Name):
+                            if node.targets[0].id in patchedAggs:
+                                patchedAggs[node.targets[0].id].append(('inline', entry))
+                            else:
+                                patchedAggs[node.targets[0].id] = [('inline', entry)]
+
                 elif isinstance(node.value, ast.List):
                     arr_list = node.value
                     arr_len = len(arr_list.elts)
@@ -179,6 +219,9 @@ class NumericalStability:
                 continue
         
         return False, 'None'
+
+    def assessBugType(self, codeSample, astSample):
+        return self._checkNumStabIncrease(codeSample, astSample)
 
 
 # Write code for entry when called by QPAC
