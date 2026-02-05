@@ -10,9 +10,9 @@
             "IncorrectStandardGate": {},
             "IncorrectOpaqueGate": {},
             "IncorrectHadamard": {},
-            "IncorrectUnitary": {}
+            "IncorrectUnitary": {},
+            "NumericalStability": {}
         }
     },
     "root_class": "RootDetector"
 }
-  
