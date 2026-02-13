@@ -1,18 +1,36 @@
 {
     "classes": {
         "RootDetector": {
+            "Initialization": {},
+            "Measurement": {},
+            "Unitary": {}
+        },
+        "Initialization": {
             "IncorrectInit": {},
-            "IncorrectRegisters": {},
+            "IncorrectRegisters": {}
+        },
+        "Measurement": {
             "IncorrectMeasurement": {},
             "ExcessiveMeasurements": {},
             "IncorrectNumberOfSamples": {},
-            "IncorrectDecisionToMeasure": {},
+            "IncorrectDecisionToMeasure": {}
+        },
+        "Unitary": {
             "IncorrectStandardGate": {},
             "IncorrectOpaqueGate": {},
             "IncorrectHadamard": {},
-            "IncorrectUnitary": {},
-            "NumericalStability": {}
-        }
+            "IncorrectUnitary": {}
+        },
+        "IncorrectInit": {},
+        "IncorrectRegisters": {},
+        "IncorrectMeasurement": {},
+        "ExcessiveMeasurements": {},
+        "IncorrectNumberOfSamples": {},
+        "IncorrectDecisionToMeasure": {},
+        "IncorrectStandardGate": {},
+        "IncorrectOpaqueGate": {},
+        "IncorrectHadamard": {},
+        "IncorrectUnitary": {}
     },
     "root_class": "RootDetector"
 }

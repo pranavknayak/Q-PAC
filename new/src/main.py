@@ -28,7 +28,7 @@ def infer_label(bugErrorMessage):
     Otherwise -> 'not a bug'
     """
     pred_label = []
-    for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement', 'ExcessiveMeasurements', 'IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectStandardGate', 'IncorrectOpaqueGate', 'IncorrectHadamard', 'IncorrectUnitary', 'NumericalStability']:
+    for bugType in ['IncorrectInit','IncorrectRegisters','IncorrectMeasurement', 'ExcessiveMeasurements', 'IncorrectNumberOfSamples','IncorrectDecisionToMeasure','IncorrectStandardGate', 'IncorrectOpaqueGate', 'IncorrectHadamard', 'IncorrectUnitary']:
         if bugType in bugErrorMessage.keys() and bugErrorMessage[bugType]!='None':
             pred_label.append(bugType)
     if(pred_label == []):
@@ -97,23 +97,19 @@ def main():
         'IncorrectOpaqueGate',
         'IncorrectHadamard',
         'IncorrectUnitary',
-        'NumericalStability',
         'not a bug',
     ]
     label_to_idx = {label: i for i, label in enumerate(all_labels)}
     
-    # Track IncorrectMeasurement and ExcessiveMeasurements predictions
-    incorrect_measurement_stats = {
-        'true_positive': [],  # Correctly predicted IncorrectMeasurement
-        'false_positive': [],  # Incorrectly predicted IncorrectMeasurement
-        'false_negative': [],  # Missed IncorrectMeasurement
-    }
-    
-    excessive_measurements_stats = {
-        'true_positive': [],  # Correctly predicted ExcessiveMeasurements
-        'false_positive': [],  # Incorrectly predicted ExcessiveMeasurements
-        'false_negative': [],  # Missed ExcessiveMeasurements
-    }
+    # Track statistics for all bug types
+    bug_stats = {}
+    for label in all_labels:
+        bug_stats[label] = {
+            'true_positive': [],   # Correctly predicted this bug type
+            'true_negative': [],   # Correctly predicted NOT this bug type
+            'false_positive': [],  # Incorrectly predicted this bug type
+            'false_negative': [],  # Missed this bug type
+        }
 
     # Iterate through all leaf dirs with both bug and fix files
     for dirpath, bug_files, fix_files in find_leaf_dirs_with_bug_fix(test_base_dir):
@@ -148,21 +144,19 @@ def main():
             bugErrorMessage = bug_investigator.detect_pattern(test)
             pred_label = infer_label(bugErrorMessage)
 
-            # Track IncorrectMeasurement predictions
-            if 'IncorrectMeasurement' in pred_label and 'IncorrectMeasurement' in true_label:
-                incorrect_measurement_stats['true_positive'].append(dirpath)
-            elif 'IncorrectMeasurement' in pred_label and 'IncorrectMeasurement' not in true_label:
-                incorrect_measurement_stats['false_positive'].append(dirpath)
-            elif 'IncorrectMeasurement' not in pred_label and 'IncorrectMeasurement' in true_label:
-                incorrect_measurement_stats['false_negative'].append(dirpath)
-            
-            # Track ExcessiveMeasurements predictions
-            if 'ExcessiveMeasurements' in pred_label and 'ExcessiveMeasurements' in true_label:
-                excessive_measurements_stats['true_positive'].append(dirpath)
-            elif 'ExcessiveMeasurements' in pred_label and 'ExcessiveMeasurements' not in true_label:
-                excessive_measurements_stats['false_positive'].append(dirpath)
-            elif 'ExcessiveMeasurements' not in pred_label and 'ExcessiveMeasurements' in true_label:
-                excessive_measurements_stats['false_negative'].append(dirpath)
+            # Track statistics for all bug types
+            for label in all_labels:
+                in_pred = label in pred_label
+                in_true = label in true_label
+                
+                if in_pred and in_true:
+                    bug_stats[label]['true_positive'].append(dirpath)
+                elif in_pred and not in_true:
+                    bug_stats[label]['false_positive'].append(dirpath)
+                elif not in_pred and in_true:
+                    bug_stats[label]['false_negative'].append(dirpath)
+                elif not in_pred and not in_true:
+                    bug_stats[label]['true_negative'].append(dirpath)
 
             mlb = MultiLabelBinarizer()
             mlb.fit(true_label + pred_label)
@@ -229,6 +223,33 @@ def main():
         print('Working Testcases: ', crt)
         print("Crashing: ",curr)
         print("Failed: ",failed)
+        
+        # Print statistics per bug fix pattern
+        print("\n" + "="*80)
+        print("STATISTICS PER BUG FIX PATTERN")
+        print("="*80)
+        for label in all_labels:
+            tp_count = len(bug_stats[label]['true_positive'])
+            tn_count = len(bug_stats[label]['true_negative'])
+            fp_count = len(bug_stats[label]['false_positive'])
+            fn_count = len(bug_stats[label]['false_negative'])
+            
+            print(f"\n{label}:")
+            print(f"  True Positives (TP):  {tp_count}")
+            print(f"  True Negatives (TN):  {tn_count}")
+            print(f"  False Positives (FP): {fp_count}")
+            print(f"  False Negatives (FN): {fn_count}")
+            
+            # Calculate precision, recall, and F1-score for this pattern
+            precision = tp_count / (tp_count + fp_count) if (tp_count + fp_count) > 0 else 0
+            recall = tp_count / (tp_count + fn_count) if (tp_count + fn_count) > 0 else 0
+            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+            accuracy = (tp_count + tn_count) / (tp_count + tn_count + fp_count + fn_count) if (tp_count + tn_count + fp_count + fn_count) > 0 else 0
+            
+            print(f"  Precision: {precision:.4f}")
+            print(f"  Recall:    {recall:.4f}")
+            print(f"  F1-Score:  {f1:.4f}")
+            print(f"  Accuracy:  {accuracy:.4f}")
 
 if __name__ == "__main__":
     main()
