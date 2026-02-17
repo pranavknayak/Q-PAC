@@ -3,7 +3,8 @@
         "RootDetector": {
             "Initialization": {},
             "Measurement": {},
-            "Unitary": {}
+            "Unitary": {},
+            "IncorrectNumberOfSamples": {}
         },
         "Initialization": {
             "IncorrectInit": {},
@@ -12,7 +13,6 @@
         "Measurement": {
             "IncorrectMeasurement": {},
             "ExcessiveMeasurements": {},
-            "IncorrectNumberOfSamples": {},
             "IncorrectDecisionToMeasure": {}
         },
         "Unitary": {
@@ -25,7 +25,6 @@
         "IncorrectRegisters": {},
         "IncorrectMeasurement": {},
         "ExcessiveMeasurements": {},
-        "IncorrectNumberOfSamples": {},
         "IncorrectDecisionToMeasure": {},
         "IncorrectStandardGate": {},
         "IncorrectOpaqueGate": {},
