@@ -112,6 +112,10 @@ def main():
         }
 
     # Iterate through all leaf dirs with both bug and fix files
+
+    total_labels = 0
+    total_runs = 0
+    not_a_bug_tests=0
     for dirpath, bug_files, fix_files in find_leaf_dirs_with_bug_fix(test_base_dir):
         true_label = []
         # read ground-truth label
@@ -120,7 +124,13 @@ def main():
             print(f"Skipping {dirpath}: no label.txt")
             continue
         with open(label_file, 'r') as lf:
-            true_label.extend(line.rstrip("\n") for line in lf)
+            true_label.extend(line.strip() for line in lf)
+        
+        if len(true_label) == 1 and true_label[0] == 'not a bug':
+            not_a_bug_tests+=1
+        else:
+            total_labels += len(true_label)
+        total_runs += 1
         
         lbl+=1
         lbled.append(dirpath)
@@ -250,6 +260,29 @@ def main():
             print(f"  Recall:    {recall:.4f}")
             print(f"  F1-Score:  {f1:.4f}")
             print(f"  Accuracy:  {accuracy:.4f}")
+
+    print("\n" + "="*80)
+    print("CRASHING TESTCASES")
+    print("="*80)
+    if curr:
+        for path in curr:
+            print(path)
+    else:
+        print("None")
+
+    print("\n" + "="*80)
+    print("FAILED TESTCASES")
+    print("="*80)
+    if failed:
+        for path in failed:
+            print(path)
+    else:
+        print("None")
+
+    print(f"Average Bugs per testcase: {total_labels/(total_runs - not_a_bug_tests)}")
+    print(f"Total number of testcases: {total_runs}")
+    print(f"Total number of labels: {total_labels}")
+    print(f"Total number of not a bugs: {not_a_bug_tests}")
 
 if __name__ == "__main__":
     main()

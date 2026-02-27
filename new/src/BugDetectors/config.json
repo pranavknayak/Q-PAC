@@ -29,6 +29,7 @@
         "IncorrectStandardGate": {},
         "IncorrectOpaqueGate": {},
         "IncorrectHadamard": {},
+        "IncorrectNumberOfSamples": {},
         "IncorrectUnitary": {}
     },
     "root_class": "RootDetector"
